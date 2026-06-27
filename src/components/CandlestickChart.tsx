@@ -1,20 +1,40 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Candle } from '../types';
+import { Candle, UserTerminalConfig } from '../types';
 import { formatDateLabel } from '../utils/dateHelpers';
 import { TrendingUp, TrendingDown, Volume2, Info, Maximize2 } from 'lucide-react';
 
 interface CandlestickChartProps {
   candles: Candle[];
   timeframe: 'Daily' | 'Weekly' | 'Monthly';
+  config?: UserTerminalConfig;
 }
 
-export default function CandlestickChart({ candles, timeframe }: CandlestickChartProps) {
+export default function CandlestickChart({ candles, timeframe, config }: CandlestickChartProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [dimensions, setDimensions] = useState({ width: 600, height: 380 });
   const [hoveredCandle, setHoveredCandle] = useState<Candle | null>(null);
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
   const [showCrosshair, setShowCrosshair] = useState(false);
+
+  // Theme support
+  const getThemeColors = (preset?: 'standard' | 'emerald' | 'cyber' | 'amber' | 'gold') => {
+    switch (preset) {
+      case 'cyber':
+        return { green: '#22d3ee', red: '#f43f5e', greenBg: 'bg-cyan-500/10 text-cyan-400 border-cyan-500/20', redBg: 'bg-rose-500/10 text-rose-400 border-rose-500/20' };
+      case 'amber':
+        return { green: '#fbbf24', red: '#ec4899', greenBg: 'bg-amber-500/10 text-amber-400 border-amber-500/20', redBg: 'bg-pink-500/10 text-pink-400 border-pink-500/20' };
+      case 'gold':
+        return { green: '#fbbf24', red: '#a78bfa', greenBg: 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20', redBg: 'bg-violet-500/10 text-violet-400 border-violet-500/20' };
+      case 'emerald':
+        return { green: '#34d399', red: '#f43f5e', greenBg: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20', redBg: 'bg-rose-500/10 text-rose-400 border-rose-500/20' };
+      case 'standard':
+      default:
+        return { green: '#10b981', red: '#f43f5e', greenBg: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20', redBg: 'bg-rose-500/10 text-rose-400 border-rose-500/20' };
+    }
+  };
+
+  const themeColors = getThemeColors(config?.themePreset);
 
   // Resize observer to make chart responsive
   useEffect(() => {
@@ -50,9 +70,25 @@ export default function CandlestickChart({ candles, timeframe }: CandlestickChar
   const chartWidth = dimensions.width - padding.left - padding.right;
   const chartHeight = dimensions.height - padding.top - padding.bottom;
 
-  // Find min and max of price values (Y-axis bounds)
-  const highValues = candles.map(c => c.high);
-  const lowValues = candles.map(c => c.low);
+  // Find min and max of price values (Y-axis bounds) including indicators to avoid clipping
+  const highValues = candles.map(c => {
+    const vals = [c.high];
+    if (config?.showIndicators) {
+      if (c.sma !== undefined) vals.push(c.sma);
+      if (c.ema !== undefined) vals.push(c.ema);
+    }
+    return Math.max(...vals);
+  });
+
+  const lowValues = candles.map(c => {
+    const vals = [c.low];
+    if (config?.showIndicators) {
+      if (c.sma !== undefined) vals.push(c.sma);
+      if (c.ema !== undefined) vals.push(c.ema);
+    }
+    return Math.min(...vals);
+  });
+
   let yMax = Math.max(...highValues);
   let yMin = Math.min(...lowValues);
 
@@ -132,45 +168,82 @@ export default function CandlestickChart({ candles, timeframe }: CandlestickChar
     return (vol / maxVolume) * maxBarHeight;
   };
 
+  // Compute SVG paths for technical indicators
+  const getIndicatorPath = (selector: (c: Candle) => number | undefined) => {
+    const points = candles
+      .map((candle, idx) => {
+        const val = selector(candle);
+        if (val === undefined || isNaN(val)) return null;
+        return `${getX(idx).toFixed(1)},${getY(val).toFixed(1)}`;
+      })
+      .filter((pt): pt is string => pt !== null);
+
+    if (points.length === 0) return '';
+    return `M ${points.join(' L ')}`;
+  };
+
+  const smaPath = config?.showIndicators ? getIndicatorPath(c => c.sma) : '';
+  const emaPath = config?.showIndicators ? getIndicatorPath(c => c.ema) : '';
+
   return (
     <div className="bg-slate-950/40 border border-slate-800/50 backdrop-blur-md rounded-xl p-5 shadow-2xl flex flex-col gap-4 relative overflow-hidden" id="candlestick_chart_panel">
       
       {/* TradingView-Style Interactive Stats Header */}
       <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-800/40 pb-4">
         {activeCandle && (
-          <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
-            {/* Asset Identifier & Current Close */}
-            <div className="flex items-center gap-2">
-              <span className="font-mono font-semibold text-white tracking-wider text-xs bg-slate-900 px-2.5 py-1 rounded border border-slate-800/60">
-                HABIT/INDEX
-              </span>
-              <span className="font-mono text-xs text-slate-500">
-                {timeframe.toUpperCase()}
-              </span>
+          <div className="flex flex-col gap-1.5 w-full md:w-auto">
+            <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
+              {/* Asset Identifier & Current Close */}
+              <div className="flex items-center gap-2">
+                <span className="font-mono font-semibold text-white tracking-wider text-xs bg-slate-900 px-2.5 py-1 rounded border border-slate-800/60">
+                  HABIT/INDEX
+                </span>
+                <span className="font-mono text-xs text-slate-500">
+                  {timeframe.toUpperCase()}
+                </span>
+              </div>
+
+              {/* OHLC Values */}
+              <div className="flex items-center gap-3 text-[11px] font-mono select-none">
+                <span className="text-slate-500 font-sans">O:<span className="text-slate-300 ml-0.5 font-mono">{activeCandle.open.toFixed(0)}</span></span>
+                <span className="text-slate-500 font-sans">H:<span className="text-slate-300 ml-0.5 font-mono">{activeCandle.high.toFixed(0)}</span></span>
+                <span className="text-slate-500 font-sans">L:<span className="text-slate-300 ml-0.5 font-mono">{activeCandle.low.toFixed(0)}</span></span>
+                <span className="text-slate-500 font-sans">C:<span className={`${activeCandle.isGreen ? 'text-emerald-400' : 'text-rose-500'} font-semibold ml-0.5 font-mono`}>{activeCandle.close.toFixed(0)}</span></span>
+                
+                {/* Change Badge */}
+                <span className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-medium ${
+                  activeCandle.isGreen ? themeColors.greenBg : themeColors.redBg
+                }`}>
+                  {activeCandle.isGreen ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
+                  {activeCandle.changePercent >= 0 ? '+' : ''}{activeCandle.changePercent.toFixed(2)}%
+                </span>
+              </div>
             </div>
 
-            {/* OHLC Values */}
-            <div className="flex items-center gap-3 text-[11px] font-mono select-none">
-              <span className="text-slate-500">O:<span className="text-slate-300 ml-0.5">{activeCandle.open.toFixed(0)}</span></span>
-              <span className="text-slate-500">H:<span className="text-slate-300 ml-0.5">{activeCandle.high.toFixed(0)}</span></span>
-              <span className="text-slate-500">L:<span className="text-slate-300 ml-0.5">{activeCandle.low.toFixed(0)}</span></span>
-              <span className="text-slate-500">C:<span className={`${activeCandle.isGreen ? 'text-emerald-400' : 'text-rose-500'} font-semibold ml-0.5`}>{activeCandle.close.toFixed(0)}</span></span>
-              
-              {/* Change Badge */}
-              <span className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-medium ${
-                activeCandle.isGreen ? 'bg-emerald-500/10 text-emerald-400' : 'bg-rose-500/10 text-rose-400'
-              }`}>
-                {activeCandle.isGreen ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
-                {activeCandle.changePercent >= 0 ? '+' : ''}{activeCandle.changePercent.toFixed(2)}%
-              </span>
-            </div>
+            {/* Technical Indicator Overlay Value Labels */}
+            {config?.showIndicators && (
+              <div className="flex gap-4 text-[10px] font-mono tracking-wide opacity-80 mt-0.5">
+                {activeCandle.sma !== undefined && (
+                  <span className="text-sky-400 flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-sky-400"></span>
+                    SMA({config.smaPeriod}): <span className="text-slate-200 font-bold">{activeCandle.sma.toFixed(1)}</span>
+                  </span>
+                )}
+                {activeCandle.ema !== undefined && (
+                  <span className="text-pink-400 flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-pink-400"></span>
+                    EMA({config.emaPeriod}): <span className="text-slate-200 font-bold">{activeCandle.ema.toFixed(1)}</span>
+                  </span>
+                )}
+              </div>
+            )}
           </div>
         )}
 
         {/* Current Time Period Label */}
         {activeCandle && (
           <div className="flex items-center gap-2 font-sans text-xs text-slate-400 font-medium">
-            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+            <span className={`w-2 h-2 rounded-full animate-pulse ${activeCandle.isGreen ? 'bg-emerald-500' : 'bg-rose-500'}`}></span>
             {activeCandle.timeLabel}
             {hoveredCandle && <span className="text-[10px] bg-slate-900 px-1.5 py-0.5 rounded text-slate-400 border border-slate-800/40">HOVER</span>}
           </div>
@@ -216,7 +289,6 @@ export default function CandlestickChart({ candles, timeframe }: CandlestickChar
 
           {/* 2. Vertical Date Ticks (X-axis ticks) */}
           {candles.map((candle, idx) => {
-            // Only render every Nth date label to avoid overlapping
             const nth = Math.max(1, Math.ceil(candles.length / 6));
             if (idx % nth !== 0 && idx !== candles.length - 1) return null;
             
@@ -261,7 +333,7 @@ export default function CandlestickChart({ candles, timeframe }: CandlestickChar
                 y={y}
                 width={barWidth}
                 height={volHeight}
-                fill={candle.isGreen ? '#10b981' : '#f43f5e'}
+                fill={candle.isGreen ? themeColors.green : themeColors.red}
                 opacity={hoveredIndex === idx ? 0.35 : 0.12}
                 rx={1}
               />
@@ -276,13 +348,11 @@ export default function CandlestickChart({ candles, timeframe }: CandlestickChar
             const highY = getY(candle.high);
             const lowY = getY(candle.low);
             
-            // Calculate candle body dimensions
             const bodyWidth = Math.max(3, (chartWidth / candles.length) * 0.65);
             const bodyTop = Math.min(openY, closeY);
             const bodyHeight = Math.max(1.5, Math.abs(openY - closeY));
-            const color = candle.isGreen ? '#10b981' : '#f43f5e'; // emerald-500 or rose-500
+            const color = candle.isGreen ? themeColors.green : themeColors.red;
 
-            // Determine border color and styling for active candle highlight
             const isHovered = hoveredIndex === idx;
             const candleStroke = isHovered ? '#ffffff' : color;
             const bodyFill = color;
@@ -313,6 +383,32 @@ export default function CandlestickChart({ candles, timeframe }: CandlestickChar
               </g>
             );
           })}
+
+          {/* Technical Indicator Overlays */}
+          {config?.showIndicators && smaPath && (
+            <path
+              d={smaPath}
+              fill="none"
+              stroke="#38bdf8" // sky-400
+              strokeWidth={2}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="opacity-90"
+            />
+          )}
+
+          {/* EMA Path Overlay */}
+          {config?.showIndicators && emaPath && (
+            <path
+              d={emaPath}
+              fill="none"
+              stroke="#f472b6" // pink-400
+              strokeWidth={2}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="opacity-90"
+            />
+          )}
 
           {/* 5. Interactive Crosshair Lines (TradingView look) */}
           {showCrosshair && (
@@ -371,7 +467,7 @@ export default function CandlestickChart({ candles, timeframe }: CandlestickChar
         {/* Dynamic Tooltip on Hover */}
         {showCrosshair && hoveredCandle && hoveredIndex !== null && (
           <div 
-            className="absolute bg-slate-900/95 border border-slate-700/80 p-2.5 rounded-lg shadow-xl pointer-events-none text-[11px] font-mono text-slate-200 z-30"
+            className="absolute bg-slate-900/95 border border-slate-700/80 p-2.5 rounded-lg shadow-xl pointer-events-none text-[11px] font-mono text-slate-200 z-30 shadow-black"
             style={{
               left: `${Math.min(dimensions.width - 170, Math.max(10, getX(hoveredIndex) - 80))}px`,
               top: `${Math.max(10, getY(hoveredCandle.high) - 85)}px`
@@ -389,6 +485,20 @@ export default function CandlestickChart({ candles, timeframe }: CandlestickChar
               <span className="text-right text-white font-semibold">{hoveredCandle.high.toFixed(0)}</span>
               <span>Low:</span>
               <span className="text-right text-white font-semibold">{hoveredCandle.low.toFixed(0)}</span>
+              
+              {hoveredCandle.sma !== undefined && (
+                <>
+                  <span className="text-sky-400">SMA:</span>
+                  <span className="text-right text-sky-400 font-semibold">{hoveredCandle.sma.toFixed(0)}</span>
+                </>
+              )}
+              {hoveredCandle.ema !== undefined && (
+                <>
+                  <span className="text-pink-400">EMA:</span>
+                  <span className="text-right text-pink-400 font-semibold">{hoveredCandle.ema.toFixed(0)}</span>
+                </>
+              )}
+
               <span>Volume:</span>
               <span className="text-right text-emerald-400 font-semibold">{hoveredCandle.volume} done</span>
             </div>
@@ -400,10 +510,10 @@ export default function CandlestickChart({ candles, timeframe }: CandlestickChar
       <div className="flex items-center justify-between mt-1 text-[11px] text-slate-400 bg-slate-950/80 px-2 py-1.5 rounded border border-slate-800/40">
         <span className="flex items-center gap-1.5 font-sans">
           <Volume2 className="w-3.5 h-3.5 text-slate-500" />
-          The translucent bars represent daily completion "Volume" activity.
+          Volume represents daily completed habits. {config?.showIndicators ? "Technical indicators are plotted over close prices." : ""}
         </span>
         <span className="font-sans text-slate-500 hidden sm:inline">
-          Y-axis: Performance Index (Base 1000)
+          Y-axis: Index Price
         </span>
       </div>
     </div>

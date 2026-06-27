@@ -17,11 +17,18 @@ import { getTodayDateString, addDays, getDatesInRange, getStartOfWeek, getYearMo
  *    - Low: Lowest index value dropped to during the day (Math.min of Path).
  *    - Close: Final index value at the end of the day.
  */
-export function calculateDailyCandles(habits: Habit[], startDateStr: string, endDateStr: string): Candle[] {
+export function calculateDailyCandles(
+  habits: Habit[],
+  startDateStr: string,
+  endDateStr: string,
+  config?: { leverage?: number; ignoreWeekends?: boolean }
+): Candle[] {
   const dates = getDatesInRange(startDateStr, endDateStr);
   const candles: Candle[] = [];
   
   let currentScore = 1000; // Baseline index
+  const leverage = config?.leverage ?? 1;
+  const ignoreWeekends = config?.ignoreWeekends ?? false;
 
   dates.forEach((date) => {
     const open = currentScore;
@@ -46,6 +53,10 @@ export function calculateDailyCandles(habits: Habit[], startDateStr: string, end
       return;
     }
 
+    // Check if weekend (Saturday=6 or Sunday=0 UTC)
+    const dateObj = new Date(date + "T00:00:00Z");
+    const isWeekend = dateObj.getUTCDay() === 0 || dateObj.getUTCDay() === 6;
+
     // Intraday path trace
     let tempScore = open;
     const pathScores = [tempScore];
@@ -55,12 +66,22 @@ export function calculateDailyCandles(habits: Habit[], startDateStr: string, end
     const sortedActive = [...activeHabits].sort((a, b) => a.id.localeCompare(b.id));
 
     sortedActive.forEach((habit) => {
+      // Check if habit is active on weekends
+      const isHabitWeekendActive = habit.isActiveOnWeekends !== false;
+      const isWeekendGrace = ignoreWeekends && isWeekend && !isHabitWeekendActive;
+
       const isCompleted = habit.history[date] === true;
+      const positiveImpact = habit.weight ?? 50;
+      const negativeImpact = habit.penalty ?? 50;
+
       if (isCompleted) {
-        tempScore += 50;
+        tempScore += positiveImpact * leverage;
         completions += 1;
       } else {
-        tempScore -= 50;
+        // If weekend grace is active, missed habits do not penalize the score
+        if (!isWeekendGrace) {
+          tempScore -= negativeImpact * leverage;
+        }
       }
       pathScores.push(tempScore);
     });
@@ -90,6 +111,91 @@ export function calculateDailyCandles(habits: Habit[], startDateStr: string, end
 
   return candles;
 }
+
+/**
+ * Overlay technical indicators onto candle arrays (e.g., SMA, EMA)
+ */
+export function injectIndicators(candles: Candle[], smaPeriod: number, emaPeriod: number): void {
+  const len = candles.length;
+  if (len === 0) return;
+
+  // 1. Calculate SMA
+  for (let i = 0; i < len; i++) {
+    if (i < smaPeriod - 1) {
+      candles[i].sma = undefined;
+    } else {
+      let sum = 0;
+      for (let j = i - smaPeriod + 1; j <= i; j++) {
+        sum += candles[j].close;
+      }
+      candles[i].sma = Number((sum / smaPeriod).toFixed(2));
+    }
+  }
+
+  // 2. Calculate EMA
+  const k = 2 / (emaPeriod + 1);
+  let prevEma = candles[0].close;
+  candles[0].ema = prevEma;
+  for (let i = 1; i < len; i++) {
+    const curClose = candles[i].close;
+    const curEma = curClose * k + prevEma * (1 - k);
+    candles[i].ema = Number(curEma.toFixed(2));
+    prevEma = curEma;
+  }
+}
+
+/**
+ * Calculates Maximum Drawdown over the active candles timeline
+ */
+export function calculateMaxDrawdown(candles: Candle[]): number {
+  if (candles.length === 0) return 0;
+  let peak = candles[0].close;
+  let maxDrawdown = 0;
+
+  candles.forEach((candle) => {
+    if (candle.close > peak) {
+      peak = candle.close;
+    }
+    const drawdown = peak === 0 ? 0 : ((peak - candle.close) / peak) * 100;
+    if (drawdown > maxDrawdown) {
+      maxDrawdown = drawdown;
+    }
+  });
+
+  return Number(maxDrawdown.toFixed(1));
+}
+
+/**
+ * Calculates a consistency Sharpe-like ratio representing steady risk-adjusted progress
+ */
+export function calculateSharpeRatio(candles: Candle[]): number {
+  if (candles.length <= 1) return 0;
+  const returns: number[] = [];
+
+  for (let i = 1; i < candles.length; i++) {
+    const prev = candles[i - 1].close;
+    if (prev !== 0) {
+      returns.push(((candles[i].close - prev) / prev) * 100);
+    }
+  }
+
+  if (returns.length === 0) return 0;
+
+  const sum = returns.reduce((a, b) => a + b, 0);
+  const mean = sum / returns.length;
+
+  const variance = returns.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / returns.length;
+  const stdDev = Math.sqrt(variance);
+
+  if (stdDev === 0) {
+    return mean > 0 ? 4.5 : 0; // high score if steady progress with zero deviations
+  }
+
+  const dailySharpe = mean / stdDev;
+  const scaledSharpe = Number.isNaN(dailySharpe) ? 0 : dailySharpe * 2.2;
+  return Number(Math.max(-5, Math.min(5, scaledSharpe)).toFixed(2));
+}
+
 
 /**
  * Aggregates daily candles into Weekly or Monthly intervals.
@@ -309,6 +415,9 @@ export function calculateMetrics(habits: Habit[], dailyCandles: Candle[]): Dashb
     }
   });
 
+  const maxDrawdown = calculateMaxDrawdown(dailyCandles);
+  const sharpeRatio = calculateSharpeRatio(dailyCandles);
+
   return {
     currentScore,
     previousScore,
@@ -318,6 +427,8 @@ export function calculateMetrics(habits: Habit[], dailyCandles: Candle[]): Dashb
     longestStreak,
     currentStreak,
     mostVolatileHabitName,
-    mostVolatileHabitSwitches
+    mostVolatileHabitSwitches,
+    maxDrawdown,
+    sharpeRatio
   };
 }

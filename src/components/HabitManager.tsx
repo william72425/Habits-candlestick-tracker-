@@ -5,7 +5,15 @@ import { Plus, Trash2, Calendar, Check, X, ShieldAlert, Award, Star, ListCollaps
 
 interface HabitManagerProps {
   habits: Habit[];
-  onAddHabit: (name: string, category: HabitCategory, frequency: HabitFrequency) => void;
+  onAddHabit: (
+    name: string,
+    category: HabitCategory,
+    frequency: HabitFrequency,
+    weight: number,
+    penalty: number,
+    riskLevel: 'Low' | 'Medium' | 'High',
+    isActiveOnWeekends: boolean
+  ) => void;
   onDeleteHabit: (id: string) => void;
   onToggleHabit: (id: string, date: string) => void;
 }
@@ -19,6 +27,10 @@ export default function HabitManager({ habits, onAddHabit, onDeleteHabit, onTogg
   const [newName, setNewName] = useState('');
   const [newCategory, setNewCategory] = useState<HabitCategory>('Health');
   const [newFrequency, setNewFrequency] = useState<HabitFrequency>('Daily');
+  const [newWeight, setNewWeight] = useState<number>(1.0);
+  const [newPenalty, setNewPenalty] = useState<number>(1.0);
+  const [newRiskLevel, setNewRiskLevel] = useState<'Low' | 'Medium' | 'High'>('Medium');
+  const [newIsActiveOnWeekends, setNewIsActiveOnWeekends] = useState<boolean>(true);
   const [error, setError] = useState('');
 
   // Sliding 7-day calendar bar (counting back from today)
@@ -32,8 +44,20 @@ export default function HabitManager({ habits, onAddHabit, onDeleteHabit, onTogg
       setError('Please enter a habit name.');
       return;
     }
-    onAddHabit(newName.trim(), newCategory, newFrequency);
+    onAddHabit(
+      newName.trim(),
+      newCategory,
+      newFrequency,
+      newWeight,
+      newPenalty,
+      newRiskLevel,
+      newIsActiveOnWeekends
+    );
     setNewName('');
+    setNewWeight(1.0);
+    setNewPenalty(1.0);
+    setNewRiskLevel('Medium');
+    setNewIsActiveOnWeekends(true);
     setError('');
   };
 
@@ -205,16 +229,19 @@ export default function HabitManager({ habits, onAddHabit, onDeleteHabit, onTogg
                       </div>
 
                       {/* Score Impact Display */}
-                      <div className="font-mono text-xs text-right">
+                      <div className="font-mono text-xs text-right flex flex-col items-end">
                         {isChecked ? (
                           <span className="text-emerald-400 font-bold font-mono">
-                            +50 <span className="text-[9px] text-emerald-500">PTS</span>
+                            +{(50 * (habit.weight || 1)).toFixed(0)} <span className="text-[9px] text-emerald-500">PTS</span>
                           </span>
                         ) : (
                           <span className="text-rose-500 font-medium font-mono">
-                            -50 <span className="text-[9px] text-rose-500">PTS</span>
+                            -{(50 * (habit.penalty || 1)).toFixed(0)} <span className="text-[9px] text-rose-500 font-mono">PTS</span>
                           </span>
                         )}
+                        <span className="text-[8px] text-slate-500 font-mono mt-0.5">
+                          W:{(habit.weight || 1.0).toFixed(1)}x P:{(habit.penalty || 1.0).toFixed(1)}x
+                        </span>
                       </div>
                     </div>
                   );
@@ -292,6 +319,84 @@ export default function HabitManager({ habits, onAddHabit, onDeleteHabit, onTogg
               </div>
             </div>
 
+            {/* Impact Weight Slider */}
+            <div className="flex flex-col gap-1">
+              <div className="flex justify-between items-center text-xs">
+                <label className="text-slate-400 font-semibold">Impact Weight (Positive Multiplier)</label>
+                <span className="text-emerald-400 font-mono font-bold">{newWeight.toFixed(1)}x</span>
+              </div>
+              <input
+                type="range"
+                min="0.5"
+                max="3.0"
+                step="0.1"
+                value={newWeight}
+                onChange={(e) => setNewWeight(parseFloat(e.target.value))}
+                className="w-full accent-emerald-500 h-1.5 bg-slate-900 rounded-lg appearance-none cursor-pointer border border-slate-800"
+              />
+              <span className="text-[10px] text-slate-500">How much this completes drives index gains</span>
+            </div>
+
+            {/* Penalty Factor Slider */}
+            <div className="flex flex-col gap-1">
+              <div className="flex justify-between items-center text-xs">
+                <label className="text-slate-400 font-semibold">Miss Penalty (Drawdown Multiplier)</label>
+                <span className="text-rose-400 font-mono font-bold">{newPenalty.toFixed(1)}x</span>
+              </div>
+              <input
+                type="range"
+                min="0.5"
+                max="3.0"
+                step="0.1"
+                value={newPenalty}
+                onChange={(e) => setNewPenalty(parseFloat(e.target.value))}
+                className="w-full accent-rose-500 h-1.5 bg-slate-900 rounded-lg appearance-none cursor-pointer border border-slate-800"
+              />
+              <span className="text-[10px] text-slate-500">How severe missing this habit harms index drawdowns</span>
+            </div>
+
+            {/* Simulated Risk Level Segment */}
+            <div className="flex flex-col gap-1.5">
+              <label className="text-slate-400 text-xs font-semibold">Simulated Volatility (Risk Sector)</label>
+              <div className="grid grid-cols-3 gap-1.5">
+                {(['Low', 'Medium', 'High'] as const).map((lvl) => (
+                  <button
+                    key={lvl}
+                    type="button"
+                    onClick={() => setNewRiskLevel(lvl)}
+                    className={`py-1.5 text-[10px] uppercase font-bold rounded-lg border transition-all cursor-pointer ${
+                      newRiskLevel === lvl 
+                        ? lvl === 'High' ? 'bg-rose-500/20 border-rose-500 text-rose-300' :
+                          lvl === 'Low' ? 'bg-emerald-500/20 border-emerald-500 text-emerald-300' :
+                          'bg-slate-800 border-slate-600 text-white font-bold'
+                        : 'bg-slate-900/30 border-slate-900/60 text-slate-500 hover:border-slate-800 hover:text-slate-400'
+                    }`}
+                  >
+                    {lvl}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Weekend Checkin Toggle */}
+            <div className="flex items-center justify-between bg-slate-900/40 p-2.5 rounded-xl border border-slate-800/60">
+              <div className="flex flex-col">
+                <label className="text-slate-200 text-xs font-semibold">Active on Weekends</label>
+                <span className="text-[9px] text-slate-500">Disable to avoid weekend missing penalties</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setNewIsActiveOnWeekends(!newIsActiveOnWeekends)}
+                className={`w-10 h-6 rounded-full p-1 transition-colors cursor-pointer duration-200 ${
+                  newIsActiveOnWeekends ? 'bg-emerald-500' : 'bg-slate-800'
+                }`}
+              >
+                <div className={`bg-slate-950 w-4 h-4 rounded-full shadow-md transform duration-200 ${
+                  newIsActiveOnWeekends ? 'translate-x-4' : 'translate-x-0'
+                }`}></div>
+              </button>
+            </div>
+
             {/* Error Message */}
             {error && (
               <p className="text-rose-400 text-xs font-medium flex items-center gap-1">
@@ -326,17 +431,35 @@ export default function HabitManager({ habits, onAddHabit, onDeleteHabit, onTogg
                   key={habit.id}
                   className="bg-slate-900/20 border border-slate-800/60 p-3 rounded-xl flex items-center justify-between gap-3 group hover:border-slate-700/80 transition-all"
                 >
-                  <div className="flex flex-col gap-0.5 truncate">
+                  <div className="flex flex-col gap-0.5 truncate flex-1">
                     <span className="font-sans font-medium text-xs text-slate-200 truncate">
                       {habit.name}
                     </span>
-                    <div className="flex items-center gap-1.5">
+                    <div className="flex flex-wrap items-center gap-1.5 mt-0.5">
                       <span className={`px-1 py-0.2 rounded text-[8px] font-medium border ${getCategoryColor(habit.category)}`}>
                         {habit.category}
                       </span>
                       <span className="text-[8px] font-mono text-slate-500 uppercase">
                         {habit.frequency}
                       </span>
+                      <span className="text-[8px] font-mono text-slate-400 bg-slate-900 border border-slate-800 px-1 py-0.2 rounded">
+                        Weight: {(habit.weight || 1).toFixed(1)}x
+                      </span>
+                      <span className="text-[8px] font-mono text-slate-400 bg-slate-900 border border-slate-800 px-1 py-0.2 rounded">
+                        Penalty: {(habit.penalty || 1).toFixed(1)}x
+                      </span>
+                      <span className={`text-[8px] font-mono px-1 py-0.2 rounded ${
+                        habit.riskLevel === 'High' ? 'text-rose-400 bg-rose-500/10 border border-rose-500/20 font-semibold' :
+                        habit.riskLevel === 'Low' ? 'text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 font-semibold' :
+                        'text-slate-400 bg-slate-800/40 border border-slate-700/30'
+                      }`}>
+                        Risk: {habit.riskLevel || 'Medium'}
+                      </span>
+                      {!habit.isActiveOnWeekends && (
+                        <span className="text-[8px] font-mono text-amber-400 bg-amber-500/10 border border-amber-500/20 px-1 py-0.2 rounded">
+                          No Weekend Penalty
+                        </span>
+                      )}
                     </div>
                   </div>
 
