@@ -18,8 +18,8 @@ export function getTodayDateString(): string {
 }
 
 export function addDays(dateStr: string, days: number): string {
-  const date = new Date(dateStr + "T00:00:00");
-  date.setDate(date.getDate() + days);
+  const date = new Date(dateStr + "T00:00:00Z");
+  date.setUTCDate(date.getUTCDate() + days);
   return date.toISOString().split('T')[0];
 }
 
@@ -34,7 +34,7 @@ export function getDatesInRange(startDateStr: string, endDateStr: string): strin
 }
 
 export function formatDateLabel(dateStr: string, type: 'short' | 'long' = 'short'): string {
-  const date = new Date(dateStr + "T00:00:00");
+  const date = new Date(dateStr + "T00:00:00Z");
   if (isNaN(date.getTime())) return dateStr;
   
   if (type === 'short') {
@@ -46,15 +46,15 @@ export function formatDateLabel(dateStr: string, type: 'short' | 'long' = 'short
 
 // Returns the Monday (YYYY-MM-DD) of the week containing dateStr
 export function getStartOfWeek(dateStr: string): string {
-  const date = new Date(dateStr + "T00:00:00");
-  const day = date.getDay(); // 0 is Sunday, 1 is Monday, ...
-  const diff = date.getDate() - day + (day === 0 ? -6 : 1); // adjust when day is sunday
-  const startOfWeek = new Date(date.setDate(diff));
-  return startOfWeek.toISOString().split('T')[0];
+  const date = new Date(dateStr + "T00:00:00Z");
+  const day = date.getUTCDay(); // 0 is Sunday, 1 is Monday, ...
+  const diff = date.getUTCDate() - day + (day === 0 ? -6 : 1); // adjust when day is sunday
+  date.setUTCDate(diff);
+  return date.toISOString().split('T')[0];
 }
 
 export function getMonthLabel(dateStr: string): string {
-  const date = new Date(dateStr + "T00:00:00");
+  const date = new Date(dateStr + "T00:00:00Z");
   return date.toLocaleDateString('en-US', { month: 'long', year: 'numeric', timeZone: 'UTC' });
 }
 
