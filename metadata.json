@@ -1,0 +1,6 @@
+{
+  "name": "Habit Candlestick Tracker",
+  "description": "A dark-aesthetic habit tracker that visualizes your completion performance as a financial stock market candlestick chart.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
