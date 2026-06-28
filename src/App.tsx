@@ -88,6 +88,23 @@ export default function App() {
   const [showIntroOverlay, setShowIntroOverlay] = useState(false);
   const [showPromoTermsModal, setShowPromoTermsModal] = useState(false);
 
+  // Sync /intropage subroute dynamically
+  useEffect(() => {
+    const checkPath = () => {
+      const path = window.location.pathname.toLowerCase().replace(/\/$/, "");
+      if (path === '/intropage') {
+        setShowIntroOverlay(true);
+      }
+    };
+    
+    checkPath();
+    
+    window.addEventListener('popstate', checkPath);
+    return () => {
+      window.removeEventListener('popstate', checkPath);
+    };
+  }, []);
+
   // 1. Initialize State from LocalStorage or Fallback Mock Data
   useEffect(() => {
     try {
@@ -2101,7 +2118,10 @@ export default function App() {
               </div>
               <button
                 type="button"
-                onClick={() => setShowIntroOverlay(true)}
+                onClick={() => {
+                  setShowIntroOverlay(true);
+                  window.history.pushState({}, '', '/intropage');
+                }}
                 className="w-full sm:w-auto px-5 py-2.5 bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:border-emerald-500/30 text-slate-300 hover:text-emerald-400 font-bold text-xs uppercase tracking-wider rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1.5 shadow-sm shrink-0"
               >
                 <HelpCircle className="w-4 h-4" />
@@ -2298,7 +2318,12 @@ export default function App() {
       {/* DETAILED EXCLUSIVE APP TOUR OVERLAY */}
       {showIntroOverlay && (
         <IntroPage 
-          onClose={() => setShowIntroOverlay(false)} 
+          onClose={() => {
+            setShowIntroOverlay(false);
+            if (window.location.pathname.toLowerCase().replace(/\/$/, "") === '/intropage') {
+              window.history.pushState({}, '', '/');
+            }
+          }} 
           currentPoints={config.totalPoints || 0} 
         />
       )}
