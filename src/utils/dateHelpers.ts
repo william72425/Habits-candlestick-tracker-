@@ -1,8 +1,6 @@
 // Date helpers for Habit Candlestick Tracker (all dates in YYYY-MM-DD format)
 
 export function getTodayDateString(): string {
-  // We can default to June 27, 2026 as per the environment metadata, or dynamically fetch the current local date.
-  // Using 2026-06-27 as the baseline today to match the user's sandbox environment.
   const now = new Date();
   const year = now.getFullYear();
   // Ensure we fall back to 2026 if the environment is locked to 2026, or use current system year
@@ -10,10 +8,6 @@ export function getTodayDateString(): string {
   const month = String(now.getMonth() + 1).padStart(2, '0');
   const day = String(now.getDate()).padStart(2, '0');
   
-  // Return system date or default to 2026-06-27 if system is older than 2026
-  if (year < 2026) {
-    return "2026-06-27";
-  }
   return `${actualYear}-${month}-${day}`;
 }
 
@@ -61,3 +55,28 @@ export function getMonthLabel(dateStr: string): string {
 export function getYearMonth(dateStr: string): string {
   return dateStr.substring(0, 7); // "YYYY-MM"
 }
+
+export function getAdjustedTodayDateString(timezoneOffsetHours: number = 6.5, nightOwlOffsetHours: number = 0): string {
+  const now = new Date();
+  
+  // 1. Get the current UTC time in milliseconds
+  const utcMs = now.getTime() + (now.getTimezoneOffset() * 60 * 1000);
+  
+  // 2. Adjust to the selected timezone offset
+  const targetTimeMs = utcMs + (timezoneOffsetHours * 60 * 60 * 1000);
+  const targetDate = new Date(targetTimeMs);
+  
+  // 3. Apply Night Owl Offset
+  const targetHours = targetDate.getHours();
+  if (targetHours < nightOwlOffsetHours) {
+    targetDate.setDate(targetDate.getDate() - 1);
+  }
+  
+  const year = targetDate.getFullYear();
+  const actualYear = year < 2026 ? 2026 : year;
+  const month = String(targetDate.getMonth() + 1).padStart(2, '0');
+  const day = String(targetDate.getDate()).padStart(2, '0');
+  
+  return `${actualYear}-${month}-${day}`;
+}
+

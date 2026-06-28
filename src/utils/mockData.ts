@@ -66,6 +66,11 @@ export function getMockHabits(): Habit[] {
       frequency: 'Daily',
       createdDate: startDate,
       history: meditationHistory,
+      difficulty: 'Easy',
+      importance: 'Medium',
+      isBestToDo: false,
+      riskLevel: 'Low',
+      isActiveOnWeekends: true
     },
     {
       id: 'leetcode',
@@ -74,6 +79,11 @@ export function getMockHabits(): Habit[] {
       frequency: 'Daily',
       createdDate: startDate,
       history: leetCodeHistory,
+      difficulty: 'Hard',
+      importance: 'High',
+      isBestToDo: true,
+      riskLevel: 'High',
+      isActiveOnWeekends: false
     },
     {
       id: 'gym',
@@ -82,6 +92,11 @@ export function getMockHabits(): Habit[] {
       frequency: 'Daily',
       createdDate: startDate,
       history: gymHistory,
+      difficulty: 'Medium',
+      importance: 'High',
+      isBestToDo: false,
+      riskLevel: 'Medium',
+      isActiveOnWeekends: true
     },
     {
       id: 'reading',
@@ -90,6 +105,11 @@ export function getMockHabits(): Habit[] {
       frequency: 'Daily',
       createdDate: startDate,
       history: readingHistory,
+      difficulty: 'Easy',
+      importance: 'Low',
+      isBestToDo: false,
+      riskLevel: 'Low',
+      isActiveOnWeekends: true
     },
   ];
 }

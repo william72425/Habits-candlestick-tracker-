@@ -1,42 +1,92 @@
 import React, { useState } from 'react';
 import { Habit, HabitCategory, HabitFrequency } from '../types';
 import { getTodayDateString, addDays, formatDateLabel, getDatesInRange } from '../utils/dateHelpers';
-import { Plus, Trash2, Calendar, Check, X, ShieldAlert, Award, Star, ListCollapse, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Plus, Trash2, Calendar, Check, X, ShieldAlert, Award, Star, ListCollapse, Sliders, ToggleLeft, ToggleRight, Info } from 'lucide-react';
+import { getHabitPoints, isHabitActiveOnDate } from '../utils/financeEngine';
+import { motion, AnimatePresence } from 'motion/react';
 
 interface HabitManagerProps {
   habits: Habit[];
+  todayStr: string;
   onAddHabit: (
     name: string,
     category: HabitCategory,
     frequency: HabitFrequency,
-    weight: number,
-    penalty: number,
+    difficulty: 'Easy' | 'Medium' | 'Hard',
+    importance: 'Low' | 'Medium' | 'High',
+    isBestToDo: boolean,
+    weight: number | undefined,
+    penalty: number | undefined,
     riskLevel: 'Low' | 'Medium' | 'High',
-    isActiveOnWeekends: boolean
+    isActiveOnWeekends: boolean,
+    selectiveDays: number[] | undefined
   ) => void;
   onDeleteHabit: (id: string) => void;
   onToggleHabit: (id: string, date: string) => void;
 }
 
-export default function HabitManager({ habits, onAddHabit, onDeleteHabit, onToggleHabit }: HabitManagerProps) {
+export default function HabitManager({ habits, todayStr, onAddHabit, onDeleteHabit, onToggleHabit }: HabitManagerProps) {
   // Setup selected tracking date. Default is Today.
-  const todayStr = getTodayDateString();
   const [selectedDate, setSelectedDate] = useState<string>(todayStr);
+
+  React.useEffect(() => {
+    setSelectedDate(todayStr);
+  }, [todayStr]);
 
   // Setup form states
   const [newName, setNewName] = useState('');
   const [newCategory, setNewCategory] = useState<HabitCategory>('Health');
   const [newFrequency, setNewFrequency] = useState<HabitFrequency>('Daily');
-  const [newWeight, setNewWeight] = useState<number>(1.0);
-  const [newPenalty, setNewPenalty] = useState<number>(1.0);
+  
+  // Custom frequency type selection
+  const [newFreqType, setNewFreqType] = useState<'Daily' | 'Weekdays' | 'Selective'>('Daily');
+  const [selectedDays, setSelectedDays] = useState<number[]>([1, 2, 3, 4, 5]); // defaults to weekdays (Mon-Fri)
+  
+  // Custom difficulty & importance gamification parameters
+  const [newDifficulty, setNewDifficulty] = useState<'Easy' | 'Medium' | 'Hard'>('Medium');
+  const [newImportance, setNewImportance] = useState<'Low' | 'Medium' | 'High'>('Medium');
+  const [newIsBestToDo, setNewIsBestToDo] = useState<boolean>(false);
+  const [customPointOverride, setCustomPointOverride] = useState<boolean>(false);
+  const [newWeight, setNewWeight] = useState<number>(30);
+  const [newPenalty, setNewPenalty] = useState<number>(30);
+  
   const [newRiskLevel, setNewRiskLevel] = useState<'Low' | 'Medium' | 'High'>('Medium');
   const [newIsActiveOnWeekends, setNewIsActiveOnWeekends] = useState<boolean>(true);
   const [error, setError] = useState('');
+
+  // Submission & animation state
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSuccess, setIsSuccess] = useState(false);
+  const [launchedName, setLaunchedName] = useState('');
+
+  const toggleDaySelection = (dayVal: number) => {
+    setSelectedDays(prev => 
+      prev.includes(dayVal) 
+        ? prev.filter(d => d !== dayVal) 
+        : [...prev, dayVal].sort()
+    );
+  };
 
   // Sliding 7-day calendar bar (counting back from today)
   const calendarDays = Array.from({ length: 7 }).map((_, idx) => {
     return addDays(todayStr, -idx);
   }).reverse(); // chronological order
+
+  // Live points preview based on selected parameters
+  const getPreviewPoints = () => {
+    if (customPointOverride) {
+      return { reward: newWeight, penalty: newPenalty };
+    }
+    const baseReward = newDifficulty === 'Easy' ? 15 : newDifficulty === 'Medium' ? 30 : 50;
+    const importanceMult = newImportance === 'Low' ? 1.0 : newImportance === 'Medium' ? 1.5 : 2.0;
+    const reward = Math.round(baseReward * importanceMult);
+    
+    const bestToDoMult = newIsBestToDo ? 2.0 : 1.0;
+    const penalty = Math.round(baseReward * importanceMult * bestToDoMult);
+    return { reward, penalty };
+  };
+
+  const preview = getPreviewPoints();
 
   const handleCreate = (e: React.FormEvent) => {
     e.preventDefault();
@@ -44,21 +94,59 @@ export default function HabitManager({ habits, onAddHabit, onDeleteHabit, onTogg
       setError('Please enter a habit name.');
       return;
     }
+
+    setError('');
+    setIsSubmitting(true);
+    setLaunchedName(newName.trim());
+
+    let activeWeekends = newIsActiveOnWeekends;
+    let days: number[] | undefined = undefined;
+
+    if (newFreqType === 'Daily') {
+      activeWeekends = true;
+      days = undefined;
+    } else if (newFreqType === 'Weekdays') {
+      activeWeekends = false;
+      days = undefined;
+    } else if (newFreqType === 'Selective') {
+      activeWeekends = selectedDays.includes(0) || selectedDays.includes(6);
+      days = selectedDays.length > 0 ? selectedDays : [1, 2, 3, 4, 5];
+    }
+
+    // Call callback
     onAddHabit(
       newName.trim(),
       newCategory,
       newFrequency,
-      newWeight,
-      newPenalty,
+      newDifficulty,
+      newImportance,
+      newIsBestToDo,
+      customPointOverride ? newWeight : undefined,
+      customPointOverride ? newPenalty : undefined,
       newRiskLevel,
-      newIsActiveOnWeekends
+      activeWeekends,
+      days
     );
-    setNewName('');
-    setNewWeight(1.0);
-    setNewPenalty(1.0);
-    setNewRiskLevel('Medium');
-    setNewIsActiveOnWeekends(true);
-    setError('');
+
+    // Trigger success state and animated reset
+    setTimeout(() => {
+      setIsSubmitting(false);
+      setIsSuccess(true);
+      
+      // Reset form fields
+      setNewName('');
+      setNewIsBestToDo(false);
+      setCustomPointOverride(false);
+      setNewWeight(30);
+      setNewPenalty(30);
+      setNewRiskLevel('Medium');
+      setNewIsActiveOnWeekends(true);
+      
+      // Auto-dismiss success notification after 3.5s
+      setTimeout(() => {
+        setIsSuccess(false);
+      }, 3500);
+    }, 700);
   };
 
   // Category Color mapping helper
@@ -109,14 +197,18 @@ export default function HabitManager({ habits, onAddHabit, onDeleteHabit, onTogg
             {calendarDays.map((dateStr) => {
               const isSelected = selectedDate === dateStr;
               const isToday = dateStr === todayStr;
-              const dateObj = new Date(dateStr + "T00:00:00");
+              const dateObj = new Date(dateStr + "T00:00:00Z");
               const dayName = dateObj.toLocaleDateString('en-US', { weekday: 'short', timeZone: 'UTC' });
               const dayNum = dateObj.toLocaleDateString('en-US', { day: 'numeric', timeZone: 'UTC' });
 
-              // Calculate done ratio for this day
-              const activeHabits = habits.filter(h => h.createdDate <= dateStr);
-              const doneCount = activeHabits.filter(h => h.history[dateStr] === true).length;
-              const totalCount = activeHabits.length;
+              // Calculate done ratio for this day (exclude archived if archived before selected day) and filter out off-schedule habits
+              const activeOnDate = habits.filter(h => {
+                const wasCreated = h.createdDate <= dateStr;
+                const wasNotArchivedYet = !h.archived || !h.archivedDate || h.archivedDate > dateStr;
+                return wasCreated && wasNotArchivedYet && isHabitActiveOnDate(h, dateStr);
+              });
+              const doneCount = activeOnDate.filter(h => h.history[dateStr] === true).length;
+              const totalCount = activeOnDate.length;
               const isPerfectDay = totalCount > 0 && doneCount === totalCount;
               const hasCompletions = doneCount > 0;
 
@@ -169,14 +261,14 @@ export default function HabitManager({ habits, onAddHabit, onDeleteHabit, onTogg
             <div className="text-right">
               <span className="text-slate-500 text-[10px] font-mono block">COMPLETED</span>
               <span className="font-mono text-xs text-slate-300 font-semibold">
-                {habits.filter(h => h.createdDate <= selectedDate && h.history[selectedDate] === true).length} / {habits.filter(h => h.createdDate <= selectedDate).length}
+                {habits.filter(h => h.createdDate <= selectedDate && (!h.archived || !h.archivedDate || h.archivedDate > selectedDate) && isHabitActiveOnDate(h, selectedDate) && h.history[selectedDate] === true).length} / {habits.filter(h => h.createdDate <= selectedDate && (!h.archived || !h.archivedDate || h.archivedDate > selectedDate) && isHabitActiveOnDate(h, selectedDate)).length}
               </span>
             </div>
           </div>
 
           {/* Habit checklist list */}
           <div className="flex flex-col gap-2.5 max-h-[380px] overflow-y-auto pr-1">
-            {habits.filter(h => h.createdDate <= selectedDate).length === 0 ? (
+            {habits.filter(h => h.createdDate <= selectedDate && (!h.archived || !h.archivedDate || h.archivedDate > selectedDate)).length === 0 ? (
               <div className="flex flex-col items-center justify-center py-10 text-center text-slate-500 text-xs">
                 <ShieldAlert className="w-8 h-8 stroke-slate-700 mb-2" />
                 <p>No habits active on this date.</p>
@@ -186,16 +278,47 @@ export default function HabitManager({ habits, onAddHabit, onDeleteHabit, onTogg
               </div>
             ) : (
               habits
-                .filter(h => h.createdDate <= selectedDate)
+                .filter(h => h.createdDate <= selectedDate && (!h.archived || !h.archivedDate || h.archivedDate > selectedDate))
                 .map((habit) => {
                   const isChecked = habit.history[selectedDate] === true;
+                  const points = getHabitPoints(habit);
+                  const isActiveToday = isHabitActiveOnDate(habit, selectedDate);
+
+                  if (!isActiveToday) {
+                    return (
+                      <div 
+                        key={habit.id}
+                        className="flex items-center justify-between p-3.5 rounded-xl border border-dashed border-slate-800 bg-slate-950/20 opacity-40 select-none cursor-not-allowed"
+                        title="Rest Day: This habit is not active today according to its tracking frequency."
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="w-6 h-6 rounded-md flex items-center justify-center bg-slate-900 border border-slate-800 text-[10px] text-slate-600">
+                            💤
+                          </div>
+                          <div className="flex flex-col">
+                            <span className="font-sans text-xs font-medium text-slate-500 line-through">
+                              {habit.name}
+                            </span>
+                            <span className="text-[8px] text-slate-600 font-mono font-bold tracking-wider uppercase mt-0.5">
+                              Off-Schedule / Rest Day
+                            </span>
+                          </div>
+                        </div>
+
+                        <span className="text-[8px] font-mono bg-slate-900/50 border border-slate-800 text-slate-500 px-1.5 py-0.5 rounded font-bold uppercase tracking-wider">
+                          Off Day
+                        </span>
+                      </div>
+                    );
+                  }
+
                   return (
                     <div 
                       key={habit.id}
                       onClick={() => onToggleHabit(habit.id, selectedDate)}
                       className={`flex items-center justify-between p-3.5 rounded-xl border transition-all cursor-pointer select-none ${
                         isChecked 
-                          ? 'bg-emerald-950/15 border-emerald-500/30 hover:border-emerald-500/50' 
+                          ? 'bg-emerald-950/15 border-emerald-500/30 hover:border-emerald-500/50 shadow-[inset_0_1px_3px_rgba(16,185,129,0.05)]' 
                           : 'bg-slate-900/20 border-slate-800/50 hover:bg-slate-900/40 hover:border-slate-800'
                       }`}
                     >
@@ -212,7 +335,7 @@ export default function HabitManager({ habits, onAddHabit, onDeleteHabit, onTogg
                         {/* Title & Category Tag */}
                         <div className="flex flex-col gap-0.5">
                           <span className={`font-sans text-sm font-medium transition-colors ${
-                            isChecked ? 'text-emerald-50/90 line-through decoration-slate-600' : 'text-slate-200'
+                            isChecked ? 'text-slate-400 line-through decoration-slate-600' : 'text-slate-200 font-bold'
                           }`}>
                             {habit.name}
                           </span>
@@ -224,6 +347,11 @@ export default function HabitManager({ habits, onAddHabit, onDeleteHabit, onTogg
                             <span className="text-[9px] font-mono text-slate-500 uppercase">
                               {habit.frequency}
                             </span>
+                            {habit.isBestToDo && (
+                              <span className="text-[9px] font-mono text-amber-500 bg-amber-500/10 px-1 py-0.2 rounded border border-amber-500/20 font-bold uppercase">
+                                Best To Do ⭐️
+                              </span>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -231,16 +359,16 @@ export default function HabitManager({ habits, onAddHabit, onDeleteHabit, onTogg
                       {/* Score Impact Display */}
                       <div className="font-mono text-xs text-right flex flex-col items-end">
                         {isChecked ? (
-                          <span className="text-emerald-400 font-bold font-mono">
-                            +{(50 * (habit.weight || 1)).toFixed(0)} <span className="text-[9px] text-emerald-500">PTS</span>
+                          <span className="text-emerald-400 font-bold font-mono text-sm flex items-center gap-0.5">
+                            +{points.reward} <span className="text-[9px] text-emerald-500">PTS</span>
                           </span>
                         ) : (
-                          <span className="text-rose-500 font-medium font-mono">
-                            -{(50 * (habit.penalty || 1)).toFixed(0)} <span className="text-[9px] text-rose-500 font-mono">PTS</span>
+                          <span className="text-rose-400 font-medium font-mono text-xs flex items-center gap-0.5">
+                            -{points.penalty} <span className="text-[9px] text-rose-500/80 font-mono">PTS</span>
                           </span>
                         )}
-                        <span className="text-[8px] text-slate-500 font-mono mt-0.5">
-                          W:{(habit.weight || 1.0).toFixed(1)}x P:{(habit.penalty || 1.0).toFixed(1)}x
+                        <span className="text-[9px] text-slate-500 font-mono mt-0.5 uppercase tracking-wide">
+                          {habit.difficulty ?? 'Medium'} / {habit.importance ?? 'Medium'}
                         </span>
                       </div>
                     </div>
@@ -298,61 +426,204 @@ export default function HabitManager({ habits, onAddHabit, onDeleteHabit, onTogg
               </div>
             </div>
 
-            {/* Frequency Settings */}
-            <div className="flex flex-col gap-1.5">
-              <label className="text-slate-400 text-xs font-semibold">Tracking Frequency</label>
-              <div className="flex gap-2">
-                {(['Daily', 'Weekly'] as HabitFrequency[]).map((freq) => (
+            {/* Tracking Frequency Settings with Weekday/Selective Day options */}
+            <div className="flex flex-col gap-2">
+              <label className="text-slate-400 text-xs font-semibold">Tracking Frequency (ခြေရာခံမည့်စနစ်)</label>
+              <div className="grid grid-cols-3 gap-1.5">
+                {[
+                  { id: 'Daily', label: 'Daily (နေ့စဉ်)' },
+                  { id: 'Weekdays', label: 'Mon-Fri (Weekdays)' },
+                  { id: 'Selective', label: 'Custom Days' }
+                ].map((type) => (
                   <button
-                    key={freq}
+                    key={type.id}
                     type="button"
-                    onClick={() => setNewFrequency(freq)}
-                    className={`flex-1 py-1.5 text-[10px] uppercase font-bold rounded-lg border transition-all cursor-pointer ${
-                      newFrequency === freq 
-                        ? 'bg-slate-800 border-slate-600 text-white' 
+                    onClick={() => {
+                      setNewFreqType(type.id as any);
+                      setError('');
+                    }}
+                    className={`py-1.5 px-1 text-[9px] uppercase font-bold rounded-lg border transition-all cursor-pointer ${
+                      newFreqType === type.id
+                        ? 'bg-emerald-500/10 border-emerald-500/40 text-emerald-400'
                         : 'bg-slate-900/30 border-slate-900/60 text-slate-500 hover:border-slate-800 hover:text-slate-400'
                     }`}
                   >
-                    {freq}
+                    {type.label}
                   </button>
                 ))}
               </div>
+
+              {/* If "Selective" is selected, show Mon-Sun selection buttons */}
+              {newFreqType === 'Selective' && (
+                <div className="flex flex-col gap-1.5 bg-slate-900/20 p-2.5 rounded-xl border border-slate-850 mt-1">
+                  <span className="text-[9px] text-slate-400 font-bold uppercase tracking-wider">Select Active Days (ခြေရာခံမည့်ရက်များ)</span>
+                  <div className="grid grid-cols-7 gap-1">
+                    {[
+                      { label: 'S', value: 0, full: 'Sun' },
+                      { label: 'M', value: 1, full: 'Mon' },
+                      { label: 'T', value: 2, full: 'Tue' },
+                      { label: 'W', value: 3, full: 'Wed' },
+                      { label: 'T', value: 4, full: 'Thu' },
+                      { label: 'F', value: 5, full: 'Fri' },
+                      { label: 'S', value: 6, full: 'Sat' }
+                    ].map((day) => {
+                      const isActive = selectedDays.includes(day.value);
+                      return (
+                        <button
+                          key={day.value}
+                          type="button"
+                          onClick={() => toggleDaySelection(day.value)}
+                          className={`py-1 text-xs font-bold rounded transition-all cursor-pointer ${
+                            isActive
+                              ? 'bg-emerald-500 text-slate-950 shadow-[0_0_8px_rgba(16,185,129,0.25)] font-extrabold'
+                              : 'bg-slate-900 border border-slate-800 text-slate-500 hover:text-slate-400'
+                          }`}
+                          title={day.full}
+                        >
+                          {day.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
             </div>
 
-            {/* Impact Weight Slider */}
-            <div className="flex flex-col gap-1">
-              <div className="flex justify-between items-center text-xs">
-                <label className="text-slate-400 font-semibold">Impact Weight (Positive Multiplier)</label>
-                <span className="text-emerald-400 font-mono font-bold">{newWeight.toFixed(1)}x</span>
+            {/* Dynamic difficulty, importance, isBestToDo segment */}
+            <div className="bg-slate-900/40 p-4 rounded-xl border border-slate-800/80 flex flex-col gap-3">
+              <div className="flex items-center gap-2 border-b border-slate-800/50 pb-2">
+                <Sliders className="w-4 h-4 text-emerald-400" />
+                <span className="text-xs font-bold text-white uppercase tracking-wider">Dynamic Score Setup</span>
               </div>
-              <input
-                type="range"
-                min="0.5"
-                max="3.0"
-                step="0.1"
-                value={newWeight}
-                onChange={(e) => setNewWeight(parseFloat(e.target.value))}
-                className="w-full accent-emerald-500 h-1.5 bg-slate-900 rounded-lg appearance-none cursor-pointer border border-slate-800"
-              />
-              <span className="text-[10px] text-slate-500">How much this completes drives index gains</span>
-            </div>
 
-            {/* Penalty Factor Slider */}
-            <div className="flex flex-col gap-1">
-              <div className="flex justify-between items-center text-xs">
-                <label className="text-slate-400 font-semibold">Miss Penalty (Drawdown Multiplier)</label>
-                <span className="text-rose-400 font-mono font-bold">{newPenalty.toFixed(1)}x</span>
+              {/* Toggle manual override */}
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-slate-300 text-[11px]">Manual Custom Overrides</span>
+                <button
+                  type="button"
+                  onClick={() => setCustomPointOverride(!customPointOverride)}
+                  className="text-slate-400 hover:text-white transition-all"
+                >
+                  {customPointOverride ? (
+                    <span className="text-[10px] bg-amber-500/10 text-amber-400 border border-amber-500/20 px-2 py-0.5 rounded uppercase font-bold">Enabled</span>
+                  ) : (
+                    <span className="text-[10px] bg-slate-800 text-slate-500 border border-slate-700 px-2 py-0.5 rounded uppercase">Auto (Recommended)</span>
+                  )}
+                </button>
               </div>
-              <input
-                type="range"
-                min="0.5"
-                max="3.0"
-                step="0.1"
-                value={newPenalty}
-                onChange={(e) => setNewPenalty(parseFloat(e.target.value))}
-                className="w-full accent-rose-500 h-1.5 bg-slate-900 rounded-lg appearance-none cursor-pointer border border-slate-800"
-              />
-              <span className="text-[10px] text-slate-500">How severe missing this habit harms index drawdowns</span>
+
+              {!customPointOverride ? (
+                <div className="flex flex-col gap-3">
+                  {/* Difficulty */}
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wide">Difficulty Level (အဆင့်သတ်မှတ်ချက်)</label>
+                    <div className="grid grid-cols-3 gap-1.5">
+                      {(['Easy', 'Medium', 'Hard'] as const).map((diff) => (
+                        <button
+                          key={diff}
+                          type="button"
+                          onClick={() => setNewDifficulty(diff)}
+                          className={`py-1 text-[10px] uppercase font-bold rounded-lg border transition-all cursor-pointer ${
+                            newDifficulty === diff 
+                              ? 'bg-slate-800 border-slate-500 text-white font-bold' 
+                              : 'bg-slate-900/20 border-slate-900 text-slate-500 hover:text-slate-400'
+                          }`}
+                        >
+                          {diff}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Importance */}
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wide">Importance Level (အရေးကြီးမှု)</label>
+                    <div className="grid grid-cols-3 gap-1.5">
+                      {(['Low', 'Medium', 'High'] as const).map((imp) => (
+                        <button
+                          key={imp}
+                          type="button"
+                          onClick={() => setNewImportance(imp)}
+                          className={`py-1 text-[10px] uppercase font-bold rounded-lg border transition-all cursor-pointer ${
+                            newImportance === imp 
+                              ? 'bg-slate-800 border-slate-500 text-white font-bold' 
+                              : 'bg-slate-900/20 border-slate-900 text-slate-500 hover:text-slate-400'
+                          }`}
+                        >
+                          {imp}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Best to do switch */}
+                  <div className="flex items-center justify-between border-t border-slate-800/40 pt-2">
+                    <div className="flex flex-col">
+                      <span className="text-slate-200 text-xs font-semibold">Best To Do (အရေးကြီးဆုံးအလေ့အကျင့်)</span>
+                      <span className="text-[9px] text-slate-500">Double miss penalty if failed (မလုပ်ဖြစ်ရင် အမှတ်ပိုနှုတ်မည်)</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setNewIsBestToDo(!newIsBestToDo)}
+                      className={`w-10 h-6 rounded-full p-1 transition-colors duration-200 cursor-pointer ${
+                        newIsBestToDo ? 'bg-amber-500' : 'bg-slate-800'
+                      }`}
+                    >
+                      <div className={`bg-slate-950 w-4 h-4 rounded-full shadow-md transform duration-200 ${
+                        newIsBestToDo ? 'translate-x-4' : 'translate-x-0'
+                      }`}></div>
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex flex-col gap-3">
+                  {/* Custom positive points override */}
+                  <div className="flex flex-col gap-1">
+                    <div className="flex justify-between items-center text-xs">
+                      <label className="text-slate-400 font-semibold">Custom Reward (အောင်မြင်ရင်ရမည့်အမှတ်)</label>
+                      <span className="text-emerald-400 font-mono font-bold">+{newWeight} PTS</span>
+                    </div>
+                    <input
+                      type="range"
+                      min="5"
+                      max="150"
+                      step="5"
+                      value={newWeight}
+                      onChange={(e) => setNewWeight(parseInt(e.target.value))}
+                      className="w-full accent-emerald-500 h-1.5 bg-slate-900 rounded-lg appearance-none cursor-pointer border border-slate-800"
+                    />
+                  </div>
+
+                  {/* Custom penalty points override */}
+                  <div className="flex flex-col gap-1">
+                    <div className="flex justify-between items-center text-xs">
+                      <label className="text-slate-400 font-semibold">Custom Penalty (မလုပ်ဖြစ်ရင်နှုတ်မည့်အမှတ်)</label>
+                      <span className="text-rose-400 font-mono font-bold">-{newPenalty} PTS</span>
+                    </div>
+                    <input
+                      type="range"
+                      min="5"
+                      max="150"
+                      step="5"
+                      value={newPenalty}
+                      onChange={(e) => setNewPenalty(parseInt(e.target.value))}
+                      className="w-full accent-rose-500 h-1.5 bg-slate-900 rounded-lg appearance-none cursor-pointer border border-slate-800"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Real-time points preview card */}
+              <div className="bg-slate-950/80 p-3 rounded-lg border border-slate-800/80 grid grid-cols-2 gap-2 text-center">
+                <div>
+                  <span className="text-[9px] text-slate-500 uppercase font-mono block">COMPLETION GAIN</span>
+                  <span className="text-emerald-400 font-mono text-sm font-black animate-pulse">+{preview.reward} PTS</span>
+                </div>
+                <div>
+                  <span className="text-[9px] text-slate-500 uppercase font-mono block">MISS PENALTY</span>
+                  <span className="text-rose-400 font-mono text-sm font-black">-{preview.penalty} PTS</span>
+                </div>
+              </div>
             </div>
 
             {/* Simulated Risk Level Segment */}
@@ -406,12 +677,32 @@ export default function HabitManager({ habits, onAddHabit, onDeleteHabit, onTogg
             )}
 
             {/* Submit Button */}
-            <button
+            <motion.button
+              whileTap={{ scale: 0.97 }}
+              disabled={isSubmitting || isSuccess}
               type="submit"
-              className="bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold py-2 rounded-xl text-sm transition-all hover:shadow-[0_0_15px_rgba(16,185,129,0.35)] cursor-pointer mt-1"
+              className={`font-bold py-2 rounded-xl text-sm transition-all cursor-pointer mt-1 flex items-center justify-center gap-2 ${
+                isSuccess
+                  ? 'bg-emerald-500 text-slate-950 shadow-[0_0_20px_rgba(16,185,129,0.5)]'
+                  : isSubmitting
+                    ? 'bg-emerald-600/30 text-emerald-400 border border-emerald-500/20 cursor-wait'
+                    : 'bg-emerald-500 hover:bg-emerald-400 text-slate-950 hover:shadow-[0_0_15px_rgba(16,185,129,0.35)]'
+              }`}
             >
-              Add to Tracker Index
-            </button>
+              {isSuccess ? (
+                <>
+                  <Check className="w-4 h-4 stroke-[3px] animate-bounce" />
+                  Launched Successfully!
+                </>
+              ) : isSubmitting ? (
+                <>
+                  <span className="w-3.5 h-3.5 border-2 border-emerald-400 border-t-transparent rounded-full animate-spin"></span>
+                  Laying Pipeline...
+                </>
+              ) : (
+                'Add to Tracker Index'
+              )}
+            </motion.button>
           </form>
         </div>
 
@@ -423,8 +714,9 @@ export default function HabitManager({ habits, onAddHabit, onDeleteHabit, onTogg
           </h3>
 
           <div className="flex flex-col gap-2 max-h-[260px] overflow-y-auto pr-1">
-            {habits.map((habit) => {
+            {habits.filter(h => !h.archived).map((habit) => {
               const { rate } = calculateHabitStats(habit);
+              const points = getHabitPoints(habit);
               
               return (
                 <div 
@@ -432,22 +724,31 @@ export default function HabitManager({ habits, onAddHabit, onDeleteHabit, onTogg
                   className="bg-slate-900/20 border border-slate-800/60 p-3 rounded-xl flex items-center justify-between gap-3 group hover:border-slate-700/80 transition-all"
                 >
                   <div className="flex flex-col gap-0.5 truncate flex-1">
-                    <span className="font-sans font-medium text-xs text-slate-200 truncate">
+                    <span className="font-sans font-bold text-xs text-slate-200 truncate">
                       {habit.name}
                     </span>
                     <div className="flex flex-wrap items-center gap-1.5 mt-0.5">
                       <span className={`px-1 py-0.2 rounded text-[8px] font-medium border ${getCategoryColor(habit.category)}`}>
                         {habit.category}
                       </span>
-                      <span className="text-[8px] font-mono text-slate-500 uppercase">
-                        {habit.frequency}
+                      <span className="text-[8px] font-mono text-slate-400 bg-slate-800/40 border border-slate-700/30 px-1 py-0.2 rounded uppercase">
+                        {habit.selectiveDays && habit.selectiveDays.length > 0 
+                          ? `Days: ${habit.selectiveDays.map(d => ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][d]).join(',')}`
+                          : habit.isActiveOnWeekends === false 
+                            ? 'Mon-Fri' 
+                            : 'Everyday'}
                       </span>
-                      <span className="text-[8px] font-mono text-slate-400 bg-slate-900 border border-slate-800 px-1 py-0.2 rounded">
-                        Weight: {(habit.weight || 1).toFixed(1)}x
+                      <span className="text-[8px] font-mono text-emerald-400 bg-emerald-500/5 border border-emerald-500/10 px-1 py-0.2 rounded">
+                        +{points.reward} PTS
                       </span>
-                      <span className="text-[8px] font-mono text-slate-400 bg-slate-900 border border-slate-800 px-1 py-0.2 rounded">
-                        Penalty: {(habit.penalty || 1).toFixed(1)}x
+                      <span className="text-[8px] font-mono text-rose-400 bg-rose-500/5 border border-rose-500/10 px-1 py-0.2 rounded">
+                        -{points.penalty} PTS
                       </span>
+                      {habit.isBestToDo && (
+                        <span className="text-[8px] font-mono text-amber-400 bg-amber-500/5 border border-amber-500/10 px-1 py-0.2 rounded font-bold">
+                          BEST TO DO ⭐️
+                        </span>
+                      )}
                       <span className={`text-[8px] font-mono px-1 py-0.2 rounded ${
                         habit.riskLevel === 'High' ? 'text-rose-400 bg-rose-500/10 border border-rose-500/20 font-semibold' :
                         habit.riskLevel === 'Low' ? 'text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 font-semibold' :
@@ -455,11 +756,6 @@ export default function HabitManager({ habits, onAddHabit, onDeleteHabit, onTogg
                       }`}>
                         Risk: {habit.riskLevel || 'Medium'}
                       </span>
-                      {!habit.isActiveOnWeekends && (
-                        <span className="text-[8px] font-mono text-amber-400 bg-amber-500/10 border border-amber-500/20 px-1 py-0.2 rounded">
-                          No Weekend Penalty
-                        </span>
-                      )}
                     </div>
                   </div>
 
@@ -490,6 +786,35 @@ export default function HabitManager({ habits, onAddHabit, onDeleteHabit, onTogg
         </div>
 
       </div>
+
+      {/* Toast Notification Container */}
+      <AnimatePresence>
+        {isSuccess && (
+          <motion.div
+            initial={{ opacity: 0, y: 50, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 20, scale: 0.95 }}
+            transition={{ type: "spring", stiffness: 350, damping: 25 }}
+            className="fixed bottom-6 right-6 z-50 bg-slate-950 border border-emerald-500/35 p-4 rounded-xl shadow-[0_12px_40px_rgba(16,185,129,0.18)] flex items-center gap-3.5 max-w-sm backdrop-blur-md"
+          >
+            <div className="w-9 h-9 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 shrink-0">
+              <Award className="w-5 h-5 animate-pulse" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <h5 className="font-sans font-bold text-xs text-white uppercase tracking-wider">Asset Deployed!</h5>
+              <p className="text-[11px] text-slate-400 font-medium truncate mt-0.5">
+                <span className="text-emerald-400 font-bold">"{launchedName}"</span> is active in the Tracker Index.
+              </p>
+            </div>
+            <button 
+              onClick={() => setIsSuccess(false)}
+              className="text-slate-500 hover:text-slate-300 transition-colors p-1 cursor-pointer"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
     </div>
   );

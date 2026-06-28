@@ -7,11 +7,17 @@ export interface Habit {
   category: HabitCategory;
   frequency: HabitFrequency;
   createdDate: string; // YYYY-MM-DD format
+  archivedDate?: string; // YYYY-MM-DD format if archived
+  archived?: boolean; // archived flag so deleted habits keep past data
   history: Record<string, boolean>; // key is YYYY-MM-DD, value is completion status
-  weight?: number; // Custom positive point impact (e.g. +10 to +100 PTS)
-  penalty?: number; // Custom negative point penalty (e.g. -10 to -100 PTS)
+  weight?: number; // Custom positive point override (optional)
+  penalty?: number; // Custom negative point override (optional)
+  difficulty?: 'Easy' | 'Medium' | 'Hard'; // Auto point multiplier
+  importance?: 'Low' | 'Medium' | 'High'; // Auto weight multiplier
+  isBestToDo?: boolean; // Double penalty multiplier if missed
   riskLevel?: 'Low' | 'Medium' | 'High'; // Custom risk weight affecting intraday volatility
   isActiveOnWeekends?: boolean; // Custom tracking days
+  selectiveDays?: number[]; // Custom selective days (0 = Sunday, 1 = Monday, etc.)
 }
 
 export interface PaperTradePosition {
@@ -23,19 +29,76 @@ export interface PaperTradePosition {
   leverage: number;
 }
 
+export interface PredictionTrade {
+  id: string;
+  entryDate: string;
+  targetDate: string;
+  entryIndexPrice: number;
+  targetIndexPrice: number;
+  wagerPoints: number;
+  payoutPoints: number;
+  status: 'PENDING' | 'WON' | 'LOST';
+  growthRequired: number; // e.g. 2, 5, 10 (%)
+  durationDays: number;
+  leverage?: number;
+}
+
+export interface PointsHistoryItem {
+  id: string;
+  date: string;
+  type: 'HABIT_COMPLETE' | 'HABIT_MISS' | 'PREDICTION_WAGER' | 'PREDICTION_WIN' | 'BONUS_REWARD' | 'INITIAL';
+  description: string;
+  points: number; // positive or negative
+}
+
+export interface PromotionTrialState {
+  status: 'NONE' | 'ELIGIBLE' | 'SCHEDULED' | 'ACTIVE' | 'COMPLETED' | 'FAILED';
+  targetTier: string;
+  targetPoints: number;
+  activationDate?: string;
+  startDate?: string;
+  endDate?: string;
+  dailyPerformance?: {
+    [date: string]: {
+      completedCount: number;
+      totalActiveCount: number;
+      pointsEarned: number;
+      totalPointsPossible: number;
+      percentage: number;
+      passed: boolean;
+    };
+  };
+}
+
 export interface UserTerminalConfig {
-  leverage: number; // e.g. 1x, 2x, 5x, 10x, 20x, 50x, 100x
+  leverage: number; // e.g. 1x, 2x, 5x, 10x
   startCapital: number; // default 10000
   paperTradingBalance: number; // current liquid cash
   positions: PaperTradePosition[];
-  stopLossPrice: number; // automatic exit or alarm
-  takeProfitPrice: number; // automatic exit or alarm
-  showIndicators: boolean; // toggle SMA & EMA
-  smaPeriod: number; // e.g. 5
-  emaPeriod: number; // e.g. 10
+  stopLossPrice: number;
+  takeProfitPrice: number;
+  showIndicators: boolean;
+  smaPeriod: number;
+  emaPeriod: number;
   themePreset: 'standard' | 'emerald' | 'cyber' | 'amber' | 'gold';
-  ignoreWeekends: boolean; // ignore Saturdays/Sundays
-  tradingActive: boolean; // toggle paper trading simulation panel
+  ignoreWeekends: boolean;
+  tradingActive: boolean;
+  
+  // Gamified additions
+  totalPoints: number;
+  predictions: PredictionTrade[];
+  pointsHistory: PointsHistoryItem[];
+
+  // Promotion Match Addition
+  promotion?: PromotionTrialState;
+
+  // Timezone and AFK anti-exploit settings
+  timezone?: string;
+  timezoneOffset?: number;
+  nightOwlOffset?: number;
+  lastActiveDate?: string;
+  consecutiveAfkCount?: number;
+  afkHistory?: string[];
 }
 
 export interface Candle {
@@ -69,4 +132,5 @@ export interface DashboardMetrics {
   sharpeRatio: number; // Performance vs volatility consistency metric
   totalProfitLoss?: number; // Current paper trade portfolio PnL
 }
+
 

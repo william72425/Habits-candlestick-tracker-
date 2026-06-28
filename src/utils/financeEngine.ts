@@ -1,5 +1,164 @@
-import { Habit, Candle, DashboardMetrics } from '../types';
+import { Habit, Candle, DashboardMetrics, UserTerminalConfig } from '../types';
 import { getTodayDateString, addDays, getDatesInRange, getStartOfWeek, getYearMonth, getMonthLabel, formatDateLabel } from './dateHelpers';
+
+/**
+ * Helper to dynamically calculate reward points and miss penalties based on
+ * difficulty, importance, and "best to do" status.
+ */
+export function getHabitPoints(habit: Habit) {
+  const difficulty = habit.difficulty ?? 'Medium';
+  const baseReward = difficulty === 'Easy' ? 15 : difficulty === 'Medium' ? 30 : 50;
+  
+  const importance = habit.importance ?? 'Medium';
+  const importanceMult = importance === 'Low' ? 1.0 : importance === 'Medium' ? 1.5 : 2.0;
+  
+  const reward = habit.weight ?? Math.round(baseReward * importanceMult);
+  
+  const bestToDoMult = habit.isBestToDo ? 2.0 : 1.0;
+  const penalty = habit.penalty ?? Math.round(baseReward * importanceMult * bestToDoMult);
+  
+  return { reward, penalty };
+}
+
+/**
+ * Checks if a habit is active on a specific date based on weekend and custom selective day settings.
+ */
+export function isHabitActiveOnDate(habit: Habit, dateStr: string): boolean {
+  const dateObj = new Date(dateStr + "T00:00:00Z");
+  const dayOfWeek = dateObj.getUTCDay(); // 0 is Sunday, 1 is Monday, etc.
+  
+  if (habit.selectiveDays && habit.selectiveDays.length > 0) {
+    return habit.selectiveDays.includes(dayOfWeek);
+  }
+  
+  const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+  if (isWeekend) {
+    return habit.isActiveOnWeekends !== false;
+  }
+  
+  return true;
+}
+
+/**
+ * PUBG-Style rank tiers and corresponding missed-habit penalty multipliers,
+ * wager limits, and metadata.
+ */
+export function getTierInfo(points: number) {
+  if (points >= 12000) {
+    return {
+      name: 'Conqueror (ဂုဏ်သရေရှိအနိုင်ရသူ)',
+      color: 'text-amber-400 border-amber-500 bg-amber-500/10 shadow-[0_0_15px_rgba(245,158,11,0.2)]',
+      badge: '👑',
+      nextPoints: Infinity,
+      prevPoints: 12000,
+      desc: 'Ultimate rank. Top tier consistency master.',
+      multiplier: 1.5,
+      label: 'Legendary Rank (150% Penalty)',
+      maxBet: 12000,
+      maxLeverage: 15
+    };
+  } else if (points >= 8000) {
+    return {
+      name: 'Ace (ကြယ်ပွင့်ပညာရှင်)',
+      color: 'text-rose-400 border-rose-500 bg-rose-500/10 shadow-[0_0_12px_rgba(244,63,94,0.15)]',
+      badge: '⭐️ Ace',
+      nextPoints: 12000,
+      prevPoints: 8000,
+      desc: 'Elite discipline level. Unstoppable momentum.',
+      multiplier: 1.3,
+      label: 'Extreme Rank (130% Penalty)',
+      maxBet: 6000,
+      maxLeverage: 10
+    };
+  } else if (points >= 5000) {
+    return {
+      name: 'Crown (သရဖူအဆင့်)',
+      color: 'text-violet-400 border-violet-500 bg-violet-500/10',
+      badge: '💎 Crown',
+      nextPoints: 8000,
+      prevPoints: 5000,
+      desc: 'Sovereign tier tracking. Mindset locked.',
+      multiplier: 1.2,
+      label: 'Elite Rank (120% Penalty)',
+      maxBet: 3000,
+      maxLeverage: 8
+    };
+  } else if (points >= 3000) {
+    return {
+      name: 'Diamond (စိန်အဆင့်)',
+      color: 'text-sky-400 border-sky-500 bg-sky-500/10',
+      badge: '💠 Diamond',
+      nextPoints: 5000,
+      prevPoints: 3000,
+      desc: 'Brilliant habit consistency and predictions.',
+      multiplier: 0.8,
+      label: 'High Standard (80% Penalty)',
+      maxBet: 1500,
+      maxLeverage: 5
+    };
+  } else if (points >= 1500) {
+    return {
+      name: 'Platinum (ပလက်တီနမ်အဆင့်)',
+      color: 'text-teal-400 border-teal-500 bg-teal-500/10',
+      badge: '🛡️ Plat',
+      nextPoints: 3000,
+      prevPoints: 1500,
+      desc: 'Strong foundational discipline established.',
+      multiplier: 0.8,
+      label: 'Standard Rank (80% Penalty)',
+      maxBet: 800,
+      maxLeverage: 3
+    };
+  } else if (points >= 500) {
+    return {
+      name: 'Silver (ငွေရောင်အဆင့်)',
+      color: 'text-slate-300 border-slate-400 bg-slate-400/5',
+      badge: '🥈 Silver',
+      nextPoints: 1500,
+      prevPoints: 500,
+      desc: 'Rising consistent action-taker.',
+      multiplier: 0.3,
+      label: 'Newbie Protection (30% Penalty)',
+      maxBet: 300,
+      maxLeverage: 2
+    };
+  } else {
+    return {
+      name: 'Bronze (ကြေးဝါအဆင့်)',
+      color: 'text-amber-600 border-amber-700 bg-amber-700/5',
+      badge: '🥉 Bronze',
+      nextPoints: 500,
+      prevPoints: 0,
+      desc: 'Discipline apprentice. Keep building active assets.',
+      multiplier: 0.3,
+      label: 'Newbie Protection (30% Penalty)',
+      maxBet: 100,
+      maxLeverage: 1
+    };
+  }
+}
+
+/**
+ * Calculates 7-day retrospective completion rate (K/D winrate style)
+ */
+export function getWeeklyConsistency(habits: Habit[], todayStr: string): number {
+  let totalOpportunities = 0;
+  let totalCompletions = 0;
+  
+  for (let i = 0; i < 7; i++) {
+    const date = addDays(todayStr, -i);
+    const activeHabits = habits.filter(h => h.createdDate <= date && (!h.archived || !h.archivedDate || h.archivedDate > date));
+    
+    activeHabits.forEach(habit => {
+      totalOpportunities++;
+      if (habit.history[date] === true) {
+        totalCompletions++;
+      }
+    });
+  }
+  
+  return totalOpportunities === 0 ? 100 : Math.round((totalCompletions / totalOpportunities) * 100);
+}
 
 /**
  * Calculates the day-by-day Habit Performance Index score and OHLC candles.
@@ -21,7 +180,7 @@ export function calculateDailyCandles(
   habits: Habit[],
   startDateStr: string,
   endDateStr: string,
-  config?: { leverage?: number; ignoreWeekends?: boolean }
+  config?: { leverage?: number; ignoreWeekends?: boolean; totalPoints?: number }
 ): Candle[] {
   const dates = getDatesInRange(startDateStr, endDateStr);
   const candles: Candle[] = [];
@@ -33,8 +192,12 @@ export function calculateDailyCandles(
   dates.forEach((date) => {
     const open = currentScore;
     
-    // Only evaluate habits that were created on or before this date
-    const activeHabits = habits.filter(h => h.createdDate <= date);
+    // Only evaluate habits that were created on or before this date AND not archived/deleted before this date
+    const activeHabits = habits.filter(h => {
+      const wasCreated = h.createdDate <= date;
+      const wasNotArchivedYet = !h.archived || !h.archivedDate || h.archivedDate > date;
+      return wasCreated && wasNotArchivedYet;
+    });
     
     if (activeHabits.length === 0) {
       // If no habits exist yet, index stays flat
@@ -53,6 +216,34 @@ export function calculateDailyCandles(
       return;
     }
 
+    // Calculate rolling 7-day consistency for dynamic multipliers
+    let rollingComps = 0;
+    let rollingOps = 0;
+    for (let i = 0; i < 7; i++) {
+      const checkDate = addDays(date, -i);
+      const histHabits = habits.filter(h => h.createdDate <= checkDate && (!h.archived || !h.archivedDate || h.archivedDate > checkDate));
+      histHabits.forEach(h => {
+        rollingOps++;
+        if (h.history[checkDate] === true) {
+          rollingComps++;
+        }
+      });
+    }
+    const rollingConsistency = rollingOps === 0 ? 100 : (rollingComps / rollingOps) * 100;
+
+    // Consistency multipliers (KD Style)
+    let rewardMult = 1.0;
+    let penaltyMult = 1.0;
+    if (rollingConsistency >= 90) {
+      rewardMult = 1.2; // 20% Bonus for win-streak
+    } else if (rollingConsistency < 50) {
+      penaltyMult = 1.5; // 50% Penalty increase for loss-streak
+    }
+
+    // Tier-based multiplier
+    const tierInfo = getTierInfo(config?.totalPoints ?? 1000);
+    const tierPenaltyMult = tierInfo.multiplier;
+
     // Check if weekend (Saturday=6 or Sunday=0 UTC)
     const dateObj = new Date(date + "T00:00:00Z");
     const isWeekend = dateObj.getUTCDay() === 0 || dateObj.getUTCDay() === 6;
@@ -66,20 +257,22 @@ export function calculateDailyCandles(
     const sortedActive = [...activeHabits].sort((a, b) => a.id.localeCompare(b.id));
 
     sortedActive.forEach((habit) => {
-      // Check if habit is active on weekends
-      const isHabitWeekendActive = habit.isActiveOnWeekends !== false;
-      const isWeekendGrace = ignoreWeekends && isWeekend && !isHabitWeekendActive;
+      // Check if habit is active on weekends or has selective days
+      const isActiveToday = isHabitActiveOnDate(habit, date);
+      const isWeekendGrace = ignoreWeekends && isWeekend && !isActiveToday;
 
       const isCompleted = habit.history[date] === true;
-      const positiveImpact = habit.weight ?? 50;
-      const negativeImpact = habit.penalty ?? 50;
+      const points = getHabitPoints(habit);
+      
+      const positiveImpact = points.reward * rewardMult;
+      const negativeImpact = points.penalty * penaltyMult * tierPenaltyMult;
 
       if (isCompleted) {
         tempScore += positiveImpact * leverage;
         completions += 1;
       } else {
-        // If weekend grace is active, missed habits do not penalize the score
-        if (!isWeekendGrace) {
+        // If weekend grace is active or habit is not active today, missed habits do not penalize the score
+        if (isActiveToday && !isWeekendGrace) {
           tempScore -= negativeImpact * leverage;
         }
       }
@@ -432,3 +625,157 @@ export function calculateMetrics(habits: Habit[], dailyCandles: Candle[]): Dashb
     sharpeRatio
   };
 }
+
+/**
+ * Helper to identify the next tier point threshold that requires promotion series.
+ */
+export function getNextTierThreshold(points: number) {
+  if (points < 500) {
+    return { name: 'Silver (ငွေရောင်အဆင့်)', points: 500 };
+  } else if (points < 1500) {
+    return { name: 'Platinum (ပလက်တီနမ်အဆင့်)', points: 1500 };
+  } else if (points < 3000) {
+    return { name: 'Diamond (စိန်အဆင့်)', points: 3000 };
+  } else if (points < 5000) {
+    return { name: 'Crown (သရဖူအဆင့်)', points: 5000 };
+  } else if (points < 8000) {
+    return { name: 'Ace (ကြယ်ပွင့်ပညာရှင်)', points: 8000 };
+  } else if (points < 12000) {
+    return { name: 'Conqueror (ဂုဏ်သရေရှိအနိုင်ရသူ)', points: 12000 };
+  }
+  return null;
+}
+
+/**
+ * Daily promotion auditing engine. Checks scheduled/active promotions and logs daily performance.
+ */
+export function auditPromotionState(
+  today: string,
+  config: UserTerminalConfig,
+  habits: Habit[]
+): {
+  nextConfig: UserTerminalConfig;
+} {
+  const promo = config.promotion;
+  if (!promo || promo.status === 'NONE' || promo.status === 'COMPLETED' || promo.status === 'FAILED') {
+    return { nextConfig: config };
+  }
+
+  const dailyPerformance = promo.dailyPerformance ? { ...promo.dailyPerformance } : {};
+  let status: 'NONE' | 'ELIGIBLE' | 'SCHEDULED' | 'ACTIVE' | 'COMPLETED' | 'FAILED' = promo.status;
+  let pointsHistory = config.pointsHistory ? [...config.pointsHistory] : [];
+  let totalPoints = config.totalPoints;
+  let configChanged = false;
+
+  // 1. Scheduled promotion starts today
+  if (status === 'SCHEDULED' && promo.startDate && today >= promo.startDate) {
+    status = 'ACTIVE';
+    configChanged = true;
+  }
+
+  // 2. Active promotion audits previous days
+  if (status === 'ACTIVE' && promo.startDate && promo.endDate) {
+    const dates = getDatesInRange(promo.startDate, promo.endDate);
+    let anyDayFailed = false;
+    let allDaysProcessed = true;
+    let updatedPerformance = false;
+
+    dates.forEach((day) => {
+      if (day < today) {
+        if (!dailyPerformance[day]) {
+          const activeOnDay = habits.filter(h => 
+            h.createdDate <= day && 
+            (!h.archived || !h.archivedDate || h.archivedDate > day) &&
+            isHabitActiveOnDate(h, day)
+          );
+          
+          if (activeOnDay.length === 0) {
+            dailyPerformance[day] = {
+              completedCount: 0,
+              totalActiveCount: 0,
+              pointsEarned: 0,
+              totalPointsPossible: 0,
+              percentage: 100,
+              passed: true
+            };
+          } else {
+            const completedOnDay = activeOnDay.filter(h => h.history[day] === true);
+            const pointsEarned = completedOnDay.reduce((sum, h) => sum + getHabitPoints(h).reward, 0);
+            const totalPointsPossible = activeOnDay.reduce((sum, h) => sum + getHabitPoints(h).reward, 0);
+            
+            const percentage = totalPointsPossible === 0 ? 100 : Math.round((pointsEarned / totalPointsPossible) * 100);
+            const passed = percentage >= 75;
+
+            dailyPerformance[day] = {
+              completedCount: completedOnDay.length,
+              totalActiveCount: activeOnDay.length,
+              pointsEarned,
+              totalPointsPossible,
+              percentage,
+              passed
+            };
+          }
+          updatedPerformance = true;
+        }
+
+        if (dailyPerformance[day] && !dailyPerformance[day].passed) {
+          anyDayFailed = true;
+        }
+      } else {
+        allDaysProcessed = false;
+      }
+    });
+
+    if (anyDayFailed) {
+      status = 'FAILED';
+      const penalty = 50;
+      totalPoints = Math.max(0, config.totalPoints - penalty);
+      pointsHistory.unshift({
+        id: `promo_fail_${Date.now()}`,
+        date: today,
+        type: 'HABIT_MISS' as const,
+        description: `❌ Promotion Trials to ${promo.targetTier} Failed. You did not meet the 75% consistency requirement. Penalty: -${penalty} PTS.`,
+        points: -penalty
+      });
+      configChanged = true;
+    } else if (allDaysProcessed || today > promo.endDate) {
+      const evaluatedDays = Object.keys(dailyPerformance).filter(d => d >= promo.startDate! && d <= promo.endDate!);
+      if (evaluatedDays.length === 3) {
+        status = 'COMPLETED';
+        const bonus = 100;
+        totalPoints = promo.targetPoints + bonus; // promoted successfully!
+        pointsHistory.unshift({
+          id: `promo_success_${Date.now()}`,
+          date: today,
+          type: 'BONUS_REWARD' as const,
+          description: `👑 Rank Promotion Match Successful! Promoted to ${promo.targetTier}! Awarded +${bonus} PTS Champion bonus!`,
+          points: bonus
+        });
+        configChanged = true;
+      }
+    }
+
+    if (updatedPerformance) {
+      configChanged = true;
+    }
+  }
+
+  if (configChanged) {
+    return {
+      nextConfig: {
+        ...config,
+        totalPoints,
+        pointsHistory,
+        promotion: {
+          ...promo,
+          status,
+          dailyPerformance
+        }
+      }
+    };
+  }
+
+  return { nextConfig: config };
+}
+
+
