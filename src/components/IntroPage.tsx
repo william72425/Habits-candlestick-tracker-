@@ -22,218 +22,38 @@ import {
 } from 'lucide-react';
 import { getTierInfo } from '../utils/financeEngine';
 import { motion, AnimatePresence } from 'motion/react';
+import { User } from '../utils/firebase';
+import { INTRO_LOCALIZATION } from '../utils/localization';
 
 interface IntroPageProps {
   onClose: () => void;
   currentPoints: number;
+  onNavigateToAuth: () => void;
+  currentUser?: User | null;
+  isGuestMode?: boolean;
+  lang?: 'en' | 'my';
+  setLang?: (lang: 'en' | 'my') => void;
 }
 
-// Comprehensive professional-grade bilingual dictionary
-const translations = {
-  en: {
-    heroTag: "🚀 REIMAGINING PERSONAL ACCOUNTABILITY",
-    heroTitle: "BET ON YOURSELF WITH",
-    heroTitleHighlight: "ABSOLUTE DISCIPLINE",
-    heroDesc: "Bet On Me is the first Gamified Habit Terminal that transforms your daily consistency into tradeable equity index. Watch your habits chart like real stock tickers, predict your growth margins, apply custom leverage, and unlock premium PUBG-style ranks.",
-    startBtn: "Start Habit Trading Now",
-    seeHowBtn: "See Core Mechanics",
-    closeTour: "Close System Tour",
-    
-    pillar1Title: "100% Habit Candlestick Charts",
-    pillar1Desc: "Your daily execution forms real financial candlesticks (Open, High, Low, Close). Checking off habits creates a massive Bullish green surge; missing them triggers a Bearish red gap.",
-    
-    pillar2Title: "Interactive Predictor Terminal",
-    pillar2Desc: "Wager points on your 1, 3, or 7-day habit streaks. Amplify rewards by selecting up to 15x leverage multipliers, but manage risk to prevent portfolio liquidation.",
-    
-    pillar3Title: "Rank Promotion Challenges",
-    pillar3Desc: "Uniquely designed PUBG-style ranks (Bronze to Conqueror). Leveling up unlocks high leverage and limits, but demands intense accountability with higher penalty rates.",
-    
-    featuresTitle: "System Operations & Protocols",
-    featuresSub: "A detailed breakdown of the custom algorithms governing your terminal account.",
-    
-    tabChart: "1. Candlestick Index Price",
-    tabChartDesc: "Asset weights, Doji & Bullish candle calculations",
-    tabPredict: "2. Predictor & Leverage",
-    tabPredictDesc: "Staking contracts, target thresholds, & margin calls",
-    tabRanks: "3. PUBG-Style Rank Levels",
-    tabRanksDesc: "Unlockable leverage, wager limits, & penalty rates",
-    tabRules: "4. Localized Schedule Graces",
-    tabRulesDesc: "Night Owl offsets, Weekend mode, & Custom Days",
-    
-    // Feature detailed panels
-    feat1Title: "Real-Time Habit Index Asset Engine",
-    feat1Desc: "Every habit you declare acts as a high-fidelity 'Habit Asset' in your index. They carry custom risk levels (Low, Medium, High) affecting daily index volatility. Checking off a 'Best To Do' asset results in a massive price spike, while neglecting key responsibilities triggers an immediate margin collapse.",
-    feat1Sub1: "All Habits Completed (100% Consistency)",
-    feat1Sub1Desc: "🟢 Bullish Candle: Intense close price surge + dynamic daily points bonus credited.",
-    feat1Sub2: "Partial Habits Completed (40% - 80% Consistency)",
-    feat1Sub2Desc: "🟡 Doji / Sideways Candle: Minimal price fluctuations, standard market balance.",
-    feat1Sub3: "Zero Habits Completed (0% Consistency)",
-    feat1Sub3Desc: "🔴 Bearish Candle: Heavy intraday market dump + automatic Miss Penalty deduction.",
-    feat1Tip: "You can toggle technical overlay indicators like SMA (Simple Moving Average) and EMA (Exponential Moving Average) directly in your Settings tab.",
-    
-    feat2Title: "Interactive Predictor Terminal with Custom Leverage",
-    feat2Desc: "Do you trust your consistency? Put real skin in the game! Stake points on your own execution over selected timeframes. Apply high leverage multipliers to scale up rewards, but be careful—falling below target triggers immediate margin liquidation.",
-    feat2Low: "LOW RISK",
-    feat2LowTitle: "1-Day Quick Scalp",
-    feat2LowDesc: "1% Growth Target / +15% Base Bonus / Low leverage cap",
-    feat2Med: "MED RISK",
-    feat2MedTitle: "3-Day Swing Trade",
-    feat2MedDesc: "4% Growth Target / +45% Base Bonus / Perfect risk-reward balance",
-    feat2High: "HIGH RISK",
-    feat2HighTitle: "7-Day Ultimate Run",
-    feat2HighDesc: "10% Growth Target / +150% Base Bonus / Ultimate commitment",
-    feat2Tip: "Liquidation events automatically write off wagered points and log transactions inside your Account Ledger.",
-    
-    feat3Title: "PUBG-Style Rank Tiers & Miss Penalties",
-    feat3Desc: "Your points represent your ultimate trading capital. Accumulating points moves you up the ranks. High ranks grant elite terminal rights, including increased max bet limits and leverage multipliers. However, high-tier traders face strict scrutiny: the penalty percentage multiplier for missed habits scales significantly.",
-    feat3ColRank: "Rank & Status",
-    feat3ColLimits: "Max Bet / Leverage",
-    feat3ColPenalty: "Penalty Multiplier",
-    feat3ColRange: "Points Bracket",
-    feat3Bronze: "🥉 Bronze (ကြေးဝါ)",
-    feat3Silver: "🥈 Silver (ငွေ)",
-    feat3Gold: "🥇 Gold (ရွှေ)",
-    feat3Plat: "💎 Platinum (ပလက်တီနမ်)",
-    feat3Diamond: "💠 Diamond (စိန်)",
-    feat3Crown: "👑 Crown (သရဖူ)",
-    feat3Conq: "🌟 Conqueror (အနိုင်ရသူ)",
-    feat3Tip: "Reaching the end of a tier locks your points and triggers a 3-Day Promotion Match. You must maintain 75% consistency for 3 days to confirm rank promotion.",
-    
-    feat4Title: "Localized Schedule Controls for Real Lifestyles",
-    feat4Desc: "Your terminal adapts to your life, not the other way around. Configure advanced scheduling controls to protect your streak score during intense weeks.",
-    feat4OwlTitle: "Night Owl Grace Hour Offset",
-    feat4OwlDesc: "Shift your daily day boundary from 12:00 AM up to 4:00 AM. Keep logging habits past midnight without breaking your daily streak.",
-    feat4WeekendTitle: "Weekend Protection Mode",
-    feat4WeekendDesc: "Exclude Saturday and Sunday from missed-habit penalty audits. Ideal for maintaining a healthy rest-work balance.",
-    feat4SelectiveTitle: "Selective Custom Days",
-    feat4SelectiveDesc: "Configure habits to trigger only on specific days (e.g., gym on Mon/Wed/Fri). Days off are automatically treated as rest periods without penalizing your score.",
-    
-    progTitle: "Progression Ladder & Rewards",
-    progSub: "Compare your current standing with the elite ranks. Can you reach the Conqueror tier?",
-    yourRank: "Your Active Rank",
-    
-    guideTitle: "Four Steps to Master the Terminal",
-    guideSub: "Quick start roadmap to build financial-style discipline.",
-    step1Title: "1. Asset Deployment",
-    step1Desc: "Go to the Assets Tab and declare your habits. Configure risk levels, custom days, and points weightings.",
-    step2Title: "2. Daily Execution",
-    step2Desc: "Carry out your routine. Mark habits on the live checklist in the Overview tab before your day boundary closes.",
-    step3Title: "3. Chart Auditing",
-    step3Desc: "Analyze your performance on the Candlestick Chart. Monitor market trends, moving averages, and index volatility.",
-    step4Title: "4. Leveraged Betting",
-    step4Desc: "Wager points in the Predictor Terminal. Boost consistency through real skin-in-the-game stakes.",
-    
-    readyTitle: "System Online & Authorized",
-    readyDesc: "Take control of your execution. Put skin in the game, trade your habits, and maximize your performance portfolio today.",
-  },
-  my: {
-    heroTag: "🚀 စည်းကမ်းကို နည်းပညာအသွင်ပြောင်းလဲခြင်း",
-    heroTitle: "ကိုယ့်ကိုယ်ကိုယ် ပြန်လည်",
-    heroTitleHighlight: "လောင်းကြေးထပ်ပါ",
-    heroDesc: "Bet On Me သည် သင့်လုပ်ဆောင်ရမည့် နေ့စဉ်အလေ့အကျင့်များကို အဖိုးတန် Asset ရှယ်ယာများအဖြစ် ပြောင်းလဲပေးသည့် ပထမဆုံး Gamified Habit Terminal ဖြစ်သည်။ စတော့ရှယ်ယာဈေးကွက်ပုံစံ Candlestick ဇယားများဖြင့် performance အတက်အကျကို စောင့်ကြည့်ပြီး၊ ရရှိလာသည့် points များကို Leverage တင်ကာ ခန့်မှန်းချက်များဖြင့် တိုးပွားအောင် ကစားနိုင်မည်ဖြစ်သည်။",
-    startBtn: "စတင်အသုံးပြုမည်",
-    seeHowBtn: "လုပ်ဆောင်ပုံအသေးစိတ်",
-    closeTour: "လမ်းညွှန်ပိတ်မည်",
-    
-    pillar1Title: "100% Habit Candlestick Charts",
-    pillar1Desc: "နေ့စဉ် checklist ပြီးမြောက်မှုများကို စတော့ရှယ်ယာများကဲ့သို့ Open, High, Low, Close ဇယားများဖြင့် ပြသပေးသည်။ ပြီးမြောက်ပါက အစိမ်းရောင် Bullish Candle တက်မည်ဖြစ်ပြီး ပျက်ကွက်ပါက အနီရောင် Bearish ဖြစ်သွားပါမည်။",
-    
-    pillar2Title: "Interactive Predictor Terminal",
-    pillar2Desc: "သင့်ရဲ့ အနာဂတ်စည်းကမ်းအပေါ် Points များဖြင့် လောင်းကြေးထပ်ပါ။ Leverage ကို ၁၅ ဆအထိ တိုးမြှင့်တင်ပြီး Predictor Terminal တွင် Bonus Points ဆုများကို ဆတိုး တိုးမြင့်ရယူနိုင်ပါသည်။",
-    
-    pillar3Title: "Rank Promotion Challenges",
-    pillar3Desc: "ရမှတ်စုဆောင်းပြီး Bronze မှ Conqueror အဆင့်အထိ တက်လှမ်းပါ။ Rank မြင့်လာပါက Max Bet ပမာဏနှင့် Leverage Multipliers များ ပိုမိုရရှိမည်ဖြစ်သော်လည်း Miss Penalty ဒဏ်ကြေး ပိုများလာပါမည်။",
-    
-    featuresTitle: "System Operations & Protocols",
-    featuresSub: "Habit Terminal ၏ လုပ်ဆောင်ပုံစနစ်တစ်ခုချင်းစီကို အသေးစိတ် ဖော်ပြပေးထားပါသည်။",
-    
-    tabChart: "၁။ Candlestick Index Price",
-    tabChartDesc: "Asset ဈေးနှုန်းနှင့် Doji & Bullish Candle တွက်ချက်ပုံ",
-    tabPredict: "၂။ Predictor & Leverage",
-    tabPredictDesc: "Points စုဆောင်းမှုနှင့် Risk Level စီမံခန့်ခွဲမှု",
-    tabRanks: "၃။ PUBG-Style Rank Tiers",
-    tabRanksDesc: "Bronze မှ Conqueror အဆင့်သတ်မှတ်ချက်များ",
-    tabRules: "၄။ Night Owl & Custom Days",
-    tabRulesDesc: "အိပ်ချိန်နောက်ကျသူများနှင့် သီးသန့်ရက်ရွေးချယ်မှု",
-    
-    // Feature detailed panels
-    feat1Title: "Real-Time Habit Index Asset Engine",
-    feat1Desc: "သင့်ရဲ့ အလေ့အကျင့်တစ်ခုစီဟာ ရိုးရိုးသက်သက် checklist မဟုတ်တော့ပါဘူး။ ၎င်းတို့ဟာ နေ့စဥ် ဈေးနှုန်းတက်လှမ်းစေမည့် အဖိုးတန် Asset များဖြစ်ကြသည်။ အလေ့အကျင့်တစ်ခုချင်းစီ၏ Risk Level (Low, Medium, High) ပေါ်မူတည်၍ Intraday Volatility (ဈေးနှုန်းအတက်အကျ) အား သက်ရောက်စေမည်ဖြစ်သည်။ အရေးကြီးသော 'Best To Do' အလေ့အကျင့် ပျက်ကွက်ပါက Margin Crash ကဲ့သို့ ဈေးနှုန်းထိုးကျသွားစေမည်။",
-    feat1Sub1: "အလေ့အကျင့်အားလုံး ပြီးမြောက်ပါက (100% Consistency)",
-    feat1Sub1Desc: "🟢 Bullish Candle: ဈေးနှုန်းအဆမတန်မြင့်တက်ပြီး Bonus Points များ ရရှိပါမည်။",
-    feat1Sub2: "၄၀% မှ ၈၀% အထိ ပြီးမြောက်ပါက",
-    feat1Sub2Desc: "🟡 Doji / Sideways Candle: ဈေးနှုန်းငြိမ်နေပြီး အပြောင်းအလဲနည်းပါးမည်။",
-    feat1Sub3: "လုံးဝ ပျက်ကွက်ပါက (0% Consistency)",
-    feat1Sub3Desc: "🔴 Bearish Candle: ဈေးနှုန်းထိုးကျပြီး Miss Penalty ဒဏ်ကြေး နုတ်ယူခြင်းခံရမည်။",
-    feat1Tip: "Settings tab ထဲတွင် SMA (Simple Moving Average) နှင့် EMA (Exponential Moving Average) ကဲ့သို့သော အဆင့်မြင့် Technical Indicators များကို ဖွင့်ပိတ်နိုင်ပါသည်။",
-    
-    feat2Title: "Interactive Predictor Terminal with Custom Leverage",
-    feat2Desc: "ကိုယ့်ရဲ့ အလေ့အကျင့် လိုက်နာနိုင်စွမ်းပေါ်မှာ ယုံကြည်မှုရှိလား? Predictor Terminal တွင် ၁ ရက်၊ ၃ ရက် သို့မဟုတ် ၇ ရက်အထိ consistency growth ခန့်မှန်းချက်များကို points များဖြင့် လောင်းကြေးထပ်ပါ။ Leverage (အကြွေးမြှောက်ဖော်ကိန်း) ကို တိုးမြှင့်အသုံးပြုပြီး ရရှိမည့် အပို bonus points ဆုများကို အဆပေါင်းများစွာ တိုးမြင့်ရယူနိုင်သည်။ Target မပြည့်ပါက Liquidate ဖြစ်ပြီး points ဆုံးရှုံးပါမည်။",
-    feat2Low: "LOW RISK",
-    feat2LowTitle: "1-Day Quick Scalp",
-    feat2LowDesc: "1% Target / +15% Base Bonus / Leverage အနိမ့်ဆုံး",
-    feat2Med: "MEDIUM RISK",
-    feat2MedTitle: "3-Day Swing Trade",
-    feat2MedDesc: "4% Target / +45% Base Bonus / အကောင်းဆုံးမျှတမှုရှိသောစနစ်",
-    feat2High: "HIGH RISK",
-    feat2HighTitle: "7-Day Ultimate Run",
-    feat2HighDesc: "10% Target / +150% Base Bonus / ခြေရာခံမှုအပြည့်အဝဖြင့် တာဝန်ခံမှုအမြင့်ဆုံး",
-    feat2Tip: "Liquidate ဖြစ်သွားသော points များအား Account Ledger (ငွေစာရင်း) ထဲတွင် ချက်ချင်းမှတ်တမ်းတင် နုတ်ယူသွားပါမည်။",
-    
-    feat3Title: "PUBG-Style Rank Tiers & Miss Penalties",
-    feat3Desc: "သင့်ရဲ့စုစုပေါင်းရမှတ်များသည် သင့်၏ Account Rank အဆင့်ကို ဆုံးဖြတ်သည်။ Rank Level မြင့်မားလာပါက Predictor တွင် Max Bet ပိုတင်နိုင်ပြီး Leverage ပိုသုံးနိုင်မည်ဖြစ်သော်လည်း၊ တာဝန်ယူမှုပိုမိုရှိလာစေရန် အလေ့အကျင့်ပျက်ကွက်မှုအတွက် Miss Penalty factor ပိုများလာမည်ဖြစ်သည်။",
-    feat3ColRank: "Rank & Badge",
-    feat3ColLimits: "Max Bet / Leverage",
-    feat3ColPenalty: "Penalty Multiplier",
-    feat3ColRange: "ရမှတ်အပိုင်းအခြား",
-    feat3Bronze: "🥉 Bronze Tier (ကြေးဝါ)",
-    feat3Silver: "🥈 Silver Tier (ငွေ)",
-    feat3Gold: "🥇 Gold Tier (ရွှေ)",
-    feat3Plat: "💎 Platinum Tier (ပလက်တီနမ်)",
-    feat3Diamond: "💠 Diamond Tier (စိန်)",
-    feat3Crown: "👑 Crown Tier (သရဖူ)",
-    feat3Conq: "🌟 Conqueror Tier (အနိုင်ရသူ)",
-    feat3Tip: "အဆင့်တစ်ခု၏ အမြင့်ဆုံးရမှတ်သို့ ရောက်ရှိပါက၊ နောက်တစ်ဆင့်သို့တက်လှမ်းရန် ၃ ရက်ကြာ ၇၅% consistency ကျော်လွန်ရမည့် Rank Promotion Match ကို ဖြတ်ကျော်ရပါမည်။ ရမှတ်များ ခဏ lock ဖြစ်နေပါမည်။",
-    
-    feat4Title: "Localized Schedule Controls for Real Lifestyles",
-    feat4Desc: "လူတိုင်းသည် အချိန်ဇယားတစ်ခုတည်းနှင့် အသက်ရှင်သည်မဟုတ်ပါ။ သင့်နေ့စဉ်လူနေမှုဘဝနှင့် လိုက်လျောညီထွေဖြစ်စေရန် timing control စနစ်များကို ထည့်သွင်းပေးထားပါသည်။",
-    feat4OwlTitle: "Night Owl Grace Hour Offset",
-    feat4OwlDesc: "မနက်မိုးလင်းခါနီးအထိ ယမန်နေ့အတွက် tick ပေးနိုင်ရန် နေ့အကူးအပြောင်းအချိန်ကို 12 AM မှ 4 AM အထိ ရွှေ့ဆိုင်းသတ်မှတ်နိုင်သည်။ Streak မပြတ်စေရန် ကာကွယ်ပေးသည်။",
-    feat4WeekendTitle: "Weekend Protection Mode",
-    feat4WeekendDesc: "စနေ၊ တနင်္ဂနွေရက်များတွင် အပန်းဖြေအနားယူနိုင်ရန် Miss Penalty ဒဏ်ကြေး သက်ရောက်မှုမရှိအောင် ပိတ်ထားနိုင်သည်။",
-    feat4SelectiveTitle: "Selective Custom Days",
-    feat4SelectiveDesc: "အလေ့အကျင့်တစ်ခုချင်းစီကို သတ်မှတ်ထားသောနေ့များတွင်သာ စစ်ဆေးရန် ရွေးချယ်နိုင်သည်။ (ဥပမာ - Gym အား Mon/Wed/Fri သာဆော့ရန်)။ ကျန်ရက်များတွင် rest day အဖြစ် အလိုအလျောက် သတ်မှတ်ပေးသည်။",
-    
-    progTitle: "Progression Ladder & Rewards",
-    progSub: "သင့်ရဲ့ လက်ရှိ Rank နှင့် ရှေ့ဆက်တက်လှမ်းရမည့် အဆင့်များကို နှိုင်းယှဉ်လေ့လာပါ။",
-    yourRank: "သင့်လက်ရှိ Rank",
-    
-    guideTitle: "၁-၂-၃-၄ လွယ်ကူသော စတင်မှုလမ်းညွှန်",
-    guideSub: "Habit Terminal အား ကျွမ်းကျင်စွာ အသုံးပြုနိုင်ရန် အခြေခံလမ်းညွှန်ချက်များ။",
-    step1Title: "၁။ Asset သတ်မှတ်ရန်",
-    step1Desc: "Assets Tab သို့သွားပြီး ခြေရာခံလိုသော Habits များကို ထည့်သွင်းပါ။ Risk Levels နှင့် Active Days များကို လွတ်လပ်စွာ သတ်မှတ်ပါ။",
-    step2Title: "၂။ နေ့စဉ် လုပ်ဆောင်ရန်",
-    step2Desc: "သတ်မှတ်ထားသောအလေ့အကျင့်များကို လုပ်ဆောင်ပြီး Overview Tab ရှိ live checklist တွင် ပြီးမြောက်ကြောင်း mark ပေးပါ။",
-    step3Title: "၃။ ဇယားများ စောင့်ကြည့်ရန်",
-    step3Desc: "Candlestick Chart တွင် သင့်တိုးတက်မှု အပိတ်ဈေးအတက်အကျ၊ SMA/EMA indicators များနှင့် trends များကို လေ့လာပါ။",
-    step4Title: "၄။ Predict Option စမ်းသပ်ရန်",
-    step4Desc: "ရရှိလာသော Points များကို အသုံးပြု၍ Predictor တွင် စိန်ခေါ်မှုများရယူပြီး bonus points များ အဆမတန် စုဆောင်းပါ။",
-    
-    footerTxt: "Bet On Me Terminal • Professional Consistency System v1.5.0 • Crafted for high-performance builders.",
-    readyTitle: "စနစ် အဆင်သင့်ဖြစ်ပါပြီ",
-    readyDesc: "ကိုယ့်ကိုယ်ကိုယ် တာဝန်ယူမှုအပြည့်ဖြင့် ရင်းနှီးမြှုပ်နှံလိုက်ပါ။ ယနေ့မှစတင်၍ သင်၏ Habits များကို စတင်ပြီးမြောက်အောင် လုပ်ဆောင်ပါ။",
-  }
-};
-
-export default function IntroPage({ onClose, currentPoints }: IntroPageProps) {
-  const [lang, setLang] = useState<'en' | 'my'>('my');
+export default function IntroPage({ 
+  onClose, 
+  currentPoints,
+  onNavigateToAuth,
+  currentUser,
+  isGuestMode,
+  lang: propLang,
+  setLang: propSetLang
+}: IntroPageProps) {
+  const [localLang, setLocalLang] = useState<'en' | 'my'>('my');
+  const lang = propLang || localLang;
+  const setLang = propSetLang || setLocalLang;
   const [activeFeatureTab, setActiveFeatureTab] = useState<'chart' | 'predictions' | 'rankings' | 'schedule'>('chart');
   
   // Showcase all available ranks dynamically
   const showcasePoints = [0, 600, 2000, 3500, 6000, 9000, 13000];
   const allTiers = showcasePoints.map(p => getTierInfo(p));
 
-  const t = translations[lang];
+  const t = INTRO_LOCALIZATION[lang];
 
   // Framer motion variants - Premium performance settings with spring kinetics
   const containerVariants = {
@@ -411,68 +231,42 @@ export default function IntroPage({ onClose, currentPoints }: IntroPageProps) {
       />
 
       {/* STICKY TOP FLOATING NAVBAR */}
-      <header className="sticky top-0 z-40 bg-slate-950/80 backdrop-blur-md border-b border-slate-900 px-6 py-4">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <div className="p-2 rounded-xl bg-gradient-to-tr from-emerald-500/20 to-amber-500/10 border border-emerald-500/30 shadow-[0_0_15px_rgba(16,185,129,0.15)]">
-              <Flame className="w-5 h-5 text-amber-400 animate-pulse" />
+      <header className="sticky top-0 z-40 bg-slate-950/85 backdrop-blur-md border-b border-slate-900/60 px-4 py-3.5 sm:px-6">
+        <div className="max-w-7xl mx-auto flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <div className="p-1.5 sm:p-2 rounded-xl bg-gradient-to-tr from-emerald-500/20 to-amber-500/10 border border-emerald-500/30 shadow-[0_0_15px_rgba(16,185,129,0.15)] shrink-0">
+              <Flame className="w-4 h-4 sm:w-5 sm:h-5 text-amber-400 animate-pulse" />
             </div>
             <div className="flex flex-col">
-              <h1 className="font-sans font-black text-sm tracking-widest text-white uppercase">
+              <h1 className="font-sans font-black text-xs sm:text-sm tracking-widest text-white uppercase leading-none">
                 BET ON ME
               </h1>
-              <span className="font-mono text-[9px] text-emerald-400 tracking-wider uppercase font-extrabold">
+              <span className="font-mono text-[8px] sm:text-[9px] text-emerald-400 tracking-wider uppercase font-extrabold mt-0.5 leading-none">
                 The Gamified Asset Terminal
               </span>
             </div>
           </div>
 
-          <div className="flex items-center gap-3.5">
-            {/* Bilingual Switcher Widget with beautiful morphing transition */}
-            <div className="flex items-center bg-slate-950/80 border border-slate-800 p-1 rounded-xl relative overflow-hidden">
-              <div className="flex relative z-10">
-                <button
-                  type="button"
-                  onClick={() => setLang('en')}
-                  className={`px-3 py-1.5 text-[10px] font-black uppercase rounded-lg cursor-pointer transition-colors duration-200 flex items-center justify-center min-w-[48px] relative ${
-                    lang === 'en' ? 'text-slate-950 font-black' : 'text-slate-400 hover:text-slate-200'
-                  }`}
-                >
-                  {lang === 'en' && (
-                    <motion.span 
-                      layoutId="activeLangIndicator"
-                      className="absolute inset-0 bg-emerald-400 rounded-lg -z-10 shadow-[0_2px_10px_rgba(16,185,129,0.4)]"
-                      transition={{ type: "spring", stiffness: 350, damping: 25 }}
-                    />
-                  )}
-                  EN
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setLang('my')}
-                  className={`px-3 py-1.5 text-[10px] font-black uppercase rounded-lg cursor-pointer transition-colors duration-200 flex items-center justify-center min-w-[56px] relative ${
-                    lang === 'my' ? 'text-slate-950 font-black' : 'text-slate-400 hover:text-slate-200'
-                  }`}
-                >
-                  {lang === 'my' && (
-                    <motion.span 
-                      layoutId="activeLangIndicator"
-                      className="absolute inset-0 bg-emerald-400 rounded-lg -z-10 shadow-[0_2px_10px_rgba(16,185,129,0.4)]"
-                      transition={{ type: "spring", stiffness: 350, damping: 25 }}
-                    />
-                  )}
-                  မြန်မာ
-                </button>
-              </div>
-            </div>
-
-            <button 
-              onClick={onClose}
-              className="flex items-center gap-1.5 px-3.5 py-1.5 bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:border-rose-500/30 text-xs text-slate-400 hover:text-rose-400 rounded-xl transition-all cursor-pointer group"
+          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+            {/* Language Selector Button with globe icon */}
+            <button
+              onClick={() => setLang(lang === 'en' ? 'my' : 'en')}
+              className="flex items-center gap-1.5 sm:gap-2 px-2.5 py-1.5 bg-slate-900 hover:bg-slate-850 border border-slate-800 hover:border-slate-700 text-slate-300 hover:text-white rounded-xl transition-all text-[11px] sm:text-xs font-semibold cursor-pointer select-none"
             >
-              <X className="w-3.5 h-3.5 transition-transform group-hover:rotate-90 duration-300" />
-              <span className="font-bold">{t.closeTour}</span>
+              <Globe className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+              <span>{lang === 'en' ? 'မြန်မာ' : 'English'}</span>
             </button>
+
+            {/* Exit/Enter button shown ONLY if user is already logged in or in guest mode */}
+            {(currentUser || isGuestMode) && (
+              <button 
+                onClick={onClose}
+                className="flex items-center gap-1.5 px-2.5 py-1.5 bg-slate-900 hover:bg-slate-850 border border-slate-800 text-[11px] sm:text-xs text-slate-400 hover:text-white rounded-xl transition-all cursor-pointer group"
+              >
+                <X className="w-3.5 h-3.5 transition-transform group-hover:rotate-90 duration-300 text-emerald-400" />
+                <span className="font-bold">{lang === 'en' ? 'Enter' : 'ပြန်ထွက်မည်'}</span>
+              </button>
+            )}
           </div>
         </div>
       </header>
@@ -482,37 +276,43 @@ export default function IntroPage({ onClose, currentPoints }: IntroPageProps) {
         variants={heroContainerVariants}
         initial="hidden"
         animate="visible"
-        className="relative px-6 pt-16 pb-14 text-center max-w-4xl mx-auto flex flex-col items-center gap-6"
+        className="relative px-4 sm:px-6 pt-12 pb-10 sm:pt-20 sm:pb-16 text-center max-w-4xl mx-auto flex flex-col items-center gap-5 sm:gap-6"
       >
         <motion.div 
           variants={heroChildVariants}
-          className="inline-flex items-center gap-2 px-3.5 py-1 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-full text-[10px] font-mono uppercase tracking-widest font-black animate-pulse"
+          className="inline-flex items-center gap-2 px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-full text-[9px] sm:text-[10px] font-mono uppercase tracking-widest font-black"
         >
           <Sparkles className="w-3 h-3 text-amber-400" /> {t.heroTag}
         </motion.div>
 
         <motion.h2 
           variants={heroChildVariants}
-          className="font-sans font-black text-4xl md:text-5xl lg:text-6xl text-white tracking-tight leading-[1.1] max-w-3xl"
+          className="font-sans font-black text-3xl sm:text-5xl md:text-6xl text-white tracking-tight leading-[1.1] max-w-3xl"
         >
           {t.heroTitle} <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 via-teal-400 to-amber-300">{t.heroTitleHighlight}</span>
         </motion.h2>
 
         <motion.p 
           variants={heroChildVariants}
-          className="text-slate-400 text-sm md:text-base leading-relaxed max-w-2xl mt-1"
+          className="text-slate-400 text-xs sm:text-sm md:text-base leading-relaxed max-w-2xl mt-1"
         >
           {t.heroDesc}
         </motion.p>
 
         <motion.div 
           variants={heroChildVariants}
-          className="flex flex-col sm:flex-row items-center gap-4 mt-4 w-full sm:w-auto"
+          className="flex flex-col sm:flex-row items-center gap-3 sm:gap-4 mt-2 sm:mt-4 w-full sm:w-auto px-4 sm:px-0"
         >
           <motion.button
             whileHover={{ scale: 1.04 }}
             whileTap={{ scale: 0.98 }}
-            onClick={onClose}
+            onClick={() => {
+              if (currentUser || isGuestMode) {
+                onClose();
+              } else {
+                onNavigateToAuth();
+              }
+            }}
             className="relative overflow-hidden group/btn w-full sm:w-auto px-8 py-3.5 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-black text-xs uppercase tracking-wider rounded-xl transition-all shadow-[0_0_20px_rgba(16,185,129,0.3)] hover:shadow-[0_0_25px_rgba(16,185,129,0.5)] cursor-pointer"
           >
             <motion.div 
@@ -528,7 +328,7 @@ export default function IntroPage({ onClose, currentPoints }: IntroPageProps) {
             whileHover={{ scale: 1.04 }}
             whileTap={{ scale: 0.98 }}
             href="#how-it-works"
-            className="w-full sm:w-auto px-6 py-3.5 bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-300 hover:text-white font-bold text-xs uppercase tracking-wider rounded-xl transition-all text-center cursor-pointer"
+            className="w-full sm:w-auto px-6 py-3.5 bg-slate-900 hover:bg-slate-850 border border-slate-800 text-slate-300 hover:text-white font-bold text-xs uppercase tracking-wider rounded-xl transition-all text-center cursor-pointer"
           >
             {t.seeHowBtn}
           </motion.a>
@@ -663,13 +463,10 @@ export default function IntroPage({ onClose, currentPoints }: IntroPageProps) {
                   </div>
                   <div className="flex flex-col gap-0.5">
                     <h4 className={`text-[10px] sm:text-xs font-black font-sans uppercase tracking-wide ${isSelected ? 'text-white' : 'text-slate-300'}`}>
-                      {translations.en[f.enKey as keyof typeof translations.en]}
+                      {t[f.enKey as keyof typeof t]}
                     </h4>
-                    <p className="text-[9px] sm:text-[10px] text-slate-500 font-semibold leading-tight Myanmar-font">
-                      {translations.my[f.myKey as keyof typeof translations.my]}
-                    </p>
-                    <p className="text-[9px] text-slate-600 font-normal leading-relaxed mt-1 hidden md:block">
-                      {translations.en[f.enDescKey as keyof typeof translations.en]}
+                    <p className="text-[9px] sm:text-[10px] text-slate-500 font-semibold leading-tight mt-0.5">
+                      {t[f.enDescKey as keyof typeof t]}
                     </p>
                   </div>
                 </motion.button>
@@ -695,58 +492,46 @@ export default function IntroPage({ onClose, currentPoints }: IntroPageProps) {
                     <span className="text-[9px] font-mono text-emerald-400 uppercase tracking-widest font-black">MODULE 01</span>
                     <div className="flex flex-col gap-0.5">
                       <h3 className="text-white font-sans font-black text-sm sm:text-lg">
-                        {translations.en.feat1Title}
+                        {t.feat1Title}
                       </h3>
-                      <p className="text-[11px] sm:text-xs text-emerald-400/80 font-bold tracking-wide leading-tight">
-                        {translations.my.feat1Title}
-                      </p>
                     </div>
                     <div className="flex flex-col gap-1 mt-2">
                       <p className="text-slate-300 text-xs leading-relaxed font-sans">
-                        {translations.en.feat1Desc}
-                      </p>
-                      <p className="text-slate-400/90 text-[11px] leading-relaxed font-sans">
-                        {translations.my.feat1Desc}
+                        {t.feat1Desc}
                       </p>
                     </div>
                   </motion.div>
 
                   <motion.div variants={featureChildVariants} className="bg-slate-950/60 p-3 sm:p-4 rounded-xl border border-slate-900 flex flex-col gap-3 font-mono text-xs">
                     <div className="flex items-center justify-between text-slate-500 border-b border-slate-800/80 pb-2">
-                      <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider">Habit Completion / ပြီးမြောက်မှု</span>
-                      <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-right">Index Output / အကျိုးသက်ရောက်မှု</span>
+                      <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider">{lang === 'en' ? 'Habit Completion' : 'အလေ့အကျင့် ပြီးမြောက်မှု'}</span>
+                      <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-right">{lang === 'en' ? 'Index Output' : 'အကျိုးသက်ရောက်မှု'}</span>
                     </div>
                     
                     <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start text-[11px] gap-1 sm:gap-4">
                       <div className="flex flex-col shrink-0">
-                        <span className="text-emerald-400 flex items-center gap-1.5 font-bold">🟢 {translations.en.feat1Sub1}</span>
-                        <span className="text-[10px] text-emerald-500/85 pl-5 sm:pl-5">{translations.my.feat1Sub1}</span>
+                        <span className="text-emerald-400 flex items-center gap-1.5 font-bold">🟢 {t.feat1Sub1}</span>
                       </div>
                       <div className="flex flex-col sm:text-right pl-5 sm:pl-0">
-                        <span className="text-slate-200">{translations.en.feat1Sub1Desc.split(': ')[1] || translations.en.feat1Sub1Desc}</span>
-                        <span className="text-[10px] text-slate-400">{translations.my.feat1Sub1Desc.split(': ')[1] || translations.my.feat1Sub1Desc}</span>
+                        <span className="text-slate-200">{t.feat1Sub1Desc.split(': ')[1] || t.feat1Sub1Desc}</span>
                       </div>
                     </div>
 
                     <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start text-[11px] gap-1 sm:gap-4 border-t border-slate-900 pt-2">
                       <div className="flex flex-col shrink-0">
-                        <span className="text-amber-400 flex items-center gap-1.5 font-bold">🟡 {translations.en.feat1Sub2}</span>
-                        <span className="text-[10px] text-amber-500/85 pl-5 sm:pl-5">{translations.my.feat1Sub2}</span>
+                        <span className="text-amber-400 flex items-center gap-1.5 font-bold">🟡 {t.feat1Sub2}</span>
                       </div>
                       <div className="flex flex-col sm:text-right pl-5 sm:pl-0">
-                        <span className="text-slate-200">{translations.en.feat1Sub2Desc.split(': ')[1] || translations.en.feat1Sub2Desc}</span>
-                        <span className="text-[10px] text-slate-400">{translations.my.feat1Sub2Desc.split(': ')[1] || translations.my.feat1Sub2Desc}</span>
+                        <span className="text-slate-200">{t.feat1Sub2Desc.split(': ')[1] || t.feat1Sub2Desc}</span>
                       </div>
                     </div>
 
                     <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start text-[11px] gap-1 sm:gap-4 border-t border-slate-900 pt-2">
                       <div className="flex flex-col shrink-0">
-                        <span className="text-rose-400 flex items-center gap-1.5 font-bold">🔴 {translations.en.feat1Sub3}</span>
-                        <span className="text-[10px] text-rose-500/85 pl-5 sm:pl-5">{translations.my.feat1Sub3}</span>
+                        <span className="text-rose-400 flex items-center gap-1.5 font-bold">🔴 {t.feat1Sub3}</span>
                       </div>
                       <div className="flex flex-col sm:text-right pl-5 sm:pl-0">
-                        <span className="text-rose-450">{translations.en.feat1Sub3Desc.split(': ')[1] || translations.en.feat1Sub3Desc}</span>
-                        <span className="text-[10px] text-rose-400">{translations.my.feat1Sub3Desc.split(': ')[1] || translations.my.feat1Sub3Desc}</span>
+                        <span className="text-rose-450">{t.feat1Sub3Desc.split(': ')[1] || t.feat1Sub3Desc}</span>
                       </div>
                     </div>
                   </motion.div>
@@ -754,8 +539,7 @@ export default function IntroPage({ onClose, currentPoints }: IntroPageProps) {
                   <motion.div variants={featureChildVariants} className="flex gap-2.5 items-start text-[10px] text-slate-500 bg-slate-950/20 p-2.5 rounded-lg border border-slate-900">
                     <Info className="w-3.5 h-3.5 text-blue-400 shrink-0 mt-0.5" />
                     <div className="flex flex-col">
-                      <span>{translations.en.feat1Tip}</span>
-                      <span className="text-slate-500/85 text-[9px] mt-0.5">{translations.my.feat1Tip}</span>
+                      <span>{t.feat1Tip}</span>
                     </div>
                   </motion.div>
                 </motion.div>
@@ -774,18 +558,12 @@ export default function IntroPage({ onClose, currentPoints }: IntroPageProps) {
                     <span className="text-[9px] font-mono text-amber-400 uppercase tracking-widest font-black">MODULE 02</span>
                     <div className="flex flex-col gap-0.5">
                       <h3 className="text-white font-sans font-black text-sm sm:text-lg">
-                        {translations.en.feat2Title}
+                        {t.feat2Title}
                       </h3>
-                      <p className="text-[11px] sm:text-xs text-amber-400/80 font-bold tracking-wide leading-tight">
-                        {translations.my.feat2Title}
-                      </p>
                     </div>
                     <div className="flex flex-col gap-1 mt-2">
                       <p className="text-slate-300 text-xs leading-relaxed font-sans">
-                        {translations.en.feat2Desc}
-                      </p>
-                      <p className="text-slate-400/90 text-[11px] leading-relaxed font-sans">
-                        {translations.my.feat2Desc}
+                        {t.feat2Desc}
                       </p>
                     </div>
                   </motion.div>
@@ -796,15 +574,13 @@ export default function IntroPage({ onClose, currentPoints }: IntroPageProps) {
                       className="bg-slate-950/60 p-3 sm:p-3.5 rounded-xl border border-slate-900 flex flex-col gap-1.5 text-center relative group transition-colors"
                     >
                       <span className="text-[8px] sm:text-[9px] font-mono text-emerald-400 font-black tracking-wider uppercase">
-                        {translations.en.feat2Low} • {translations.my.feat2Low}
+                        {t.feat2Low}
                       </span>
                       <div className="flex flex-col gap-0.5 mt-0.5">
-                        <span className="text-xs text-white font-black">{translations.en.feat2LowTitle}</span>
-                        <span className="text-[10px] text-emerald-400 font-medium">{translations.my.feat2LowTitle}</span>
+                        <span className="text-xs text-white font-black">{t.feat2LowTitle}</span>
                       </div>
                       <div className="flex flex-col gap-1 border-t border-slate-900 pt-1.5 mt-1">
-                        <span className="text-[9px] text-slate-400 leading-snug">{translations.en.feat2LowDesc}</span>
-                        <span className="text-[8.5px] text-slate-500 leading-snug">{translations.my.feat2LowDesc}</span>
+                        <span className="text-[9px] text-slate-400 leading-snug">{t.feat2LowDesc}</span>
                       </div>
                     </motion.div>
 
@@ -813,15 +589,13 @@ export default function IntroPage({ onClose, currentPoints }: IntroPageProps) {
                       className="bg-slate-950/60 p-3 sm:p-3.5 rounded-xl border border-slate-900 flex flex-col gap-1.5 text-center relative group transition-colors"
                     >
                       <span className="text-[8px] sm:text-[9px] font-mono text-cyan-400 font-black tracking-wider uppercase">
-                        {translations.en.feat2Med} • {translations.my.feat2Med}
+                        {t.feat2Med}
                       </span>
                       <div className="flex flex-col gap-0.5 mt-0.5">
-                        <span className="text-xs text-white font-black">{translations.en.feat2MedTitle}</span>
-                        <span className="text-[10px] text-cyan-400 font-medium">{translations.my.feat2MedTitle}</span>
+                        <span className="text-xs text-white font-black">{t.feat2MedTitle}</span>
                       </div>
                       <div className="flex flex-col gap-1 border-t border-slate-900 pt-1.5 mt-1">
-                        <span className="text-[9px] text-slate-400 leading-snug">{translations.en.feat2MedDesc}</span>
-                        <span className="text-[8.5px] text-slate-500 leading-snug">{translations.my.feat2MedDesc}</span>
+                        <span className="text-[9px] text-slate-400 leading-snug">{t.feat2MedDesc}</span>
                       </div>
                     </motion.div>
 
@@ -830,15 +604,13 @@ export default function IntroPage({ onClose, currentPoints }: IntroPageProps) {
                       className="bg-slate-950/60 p-3 sm:p-3.5 rounded-xl border border-slate-900 flex flex-col gap-1.5 text-center relative group transition-colors"
                     >
                       <span className="text-[8px] sm:text-[9px] font-mono text-amber-400 font-black tracking-wider uppercase">
-                        {translations.en.feat2High} • {translations.my.feat2High}
+                        {t.feat2High}
                       </span>
                       <div className="flex flex-col gap-0.5 mt-0.5">
-                        <span className="text-xs text-white font-black">{translations.en.feat2HighTitle}</span>
-                        <span className="text-[10px] text-amber-400 font-medium">{translations.my.feat2HighTitle}</span>
+                        <span className="text-xs text-white font-black">{t.feat2HighTitle}</span>
                       </div>
                       <div className="flex flex-col gap-1 border-t border-slate-900 pt-1.5 mt-1">
-                        <span className="text-[9px] text-slate-400 leading-snug">{translations.en.feat2HighDesc}</span>
-                        <span className="text-[8.5px] text-slate-500 leading-snug">{translations.my.feat2HighDesc}</span>
+                        <span className="text-[9px] text-slate-400 leading-snug">{t.feat2HighDesc}</span>
                       </div>
                     </motion.div>
                   </motion.div>
@@ -846,8 +618,7 @@ export default function IntroPage({ onClose, currentPoints }: IntroPageProps) {
                   <motion.div variants={featureChildVariants} className="flex gap-2.5 items-start text-[10px] text-slate-500 bg-slate-950/20 p-2.5 rounded-lg border border-slate-900">
                     <Zap className="w-3.5 h-3.5 text-amber-400 shrink-0 animate-pulse mt-0.5" />
                     <div className="flex flex-col">
-                      <span>{translations.en.feat2Tip}</span>
-                      <span className="text-slate-500/85 text-[9px] mt-0.5">{translations.my.feat2Tip}</span>
+                      <span>{t.feat2Tip}</span>
                     </div>
                   </motion.div>
                 </motion.div>
@@ -866,28 +637,22 @@ export default function IntroPage({ onClose, currentPoints }: IntroPageProps) {
                     <span className="text-[9px] font-mono text-violet-400 uppercase tracking-widest font-black">MODULE 03</span>
                     <div className="flex flex-col gap-0.5">
                       <h3 className="text-white font-sans font-black text-sm sm:text-lg">
-                        {translations.en.feat3Title}
+                        {t.feat3Title}
                       </h3>
-                      <p className="text-[11px] sm:text-xs text-violet-400 font-bold tracking-wide leading-tight">
-                        {translations.my.feat3Title}
-                      </p>
                     </div>
                     <div className="flex flex-col gap-1 mt-2">
                       <p className="text-slate-300 text-xs leading-relaxed font-sans">
-                        {translations.en.feat3Desc}
-                      </p>
-                      <p className="text-slate-400/90 text-[11px] leading-relaxed font-sans">
-                        {translations.my.feat3Desc}
+                        {t.feat3Desc}
                       </p>
                     </div>
                   </motion.div>
 
                   <motion.div variants={featureChildVariants} className="bg-slate-950/60 p-2.5 sm:p-4 rounded-xl border border-slate-900 flex flex-col gap-2 max-h-[220px] overflow-y-auto custom-scrollbar">
                     <div className="hidden sm:grid sm:grid-cols-4 text-[10px] font-bold uppercase tracking-wider text-slate-500 border-b border-slate-800/80 pb-2 mb-1">
-                      <span>Rank & Badge / အဆင့်</span>
-                      <span>Max Bet & Leverage</span>
-                      <span>Miss Penalty Multiplier</span>
-                      <span>Points Bracket / ရမှတ်စု</span>
+                      <span>{lang === 'en' ? 'Rank & Badge' : 'အဆင့်နှင့် တံဆိပ်'}</span>
+                      <span>{lang === 'en' ? 'Max Bet & Leverage' : 'အများဆုံးလောင်းကြေးနှင့် Leverage'}</span>
+                      <span>{lang === 'en' ? 'Miss Penalty Multiplier' : 'ပျက်ကွက်ဒဏ်ကြေး'}</span>
+                      <span>{lang === 'en' ? 'Points Bracket' : 'ရမှတ်အပိုင်းအခြား'}</span>
                     </div>
                     
                     {[
@@ -903,20 +668,21 @@ export default function IntroPage({ onClose, currentPoints }: IntroPageProps) {
                         <div className="flex items-center gap-1.5">
                           <span className="text-sm">{row.badge}</span>
                           <div className="flex flex-row sm:flex-col items-center sm:items-start gap-1 sm:gap-0">
-                            <span className={`${row.color} font-black`}>{row.rankEn}</span>
-                            <span className="text-[10px] text-slate-400">({row.rankMy})</span>
+                            <span className={`${row.color} font-black`}>
+                              {lang === 'en' ? row.rankEn : `${row.rankEn} (${row.rankMy})`}
+                            </span>
                           </div>
                         </div>
                         <div className="flex sm:block justify-between text-slate-300">
-                          <span className="sm:hidden text-slate-500 text-[9px] uppercase font-bold">Max Bet/Lev:</span>
+                          <span className="sm:hidden text-slate-500 text-[9px] uppercase font-bold">{lang === 'en' ? 'Max Bet/Lev:' : 'အများဆုံးလောင်းကြေး/Lev:'}</span>
                           <span className="font-semibold">{row.limits}</span>
                         </div>
                         <div className="flex sm:block justify-between text-rose-450">
-                          <span className="sm:hidden text-slate-500 text-[9px] uppercase font-bold">Penalty:</span>
+                          <span className="sm:hidden text-slate-500 text-[9px] uppercase font-bold">{lang === 'en' ? 'Penalty:' : 'ဒဏ်ကြေး:'}</span>
                           <span>{row.penalty}</span>
                         </div>
                         <div className="flex sm:block justify-between text-slate-500">
-                          <span className="sm:hidden text-slate-500 text-[9px] uppercase font-bold">Points Bracket:</span>
+                          <span className="sm:hidden text-slate-500 text-[9px] uppercase font-bold">{lang === 'en' ? 'Points Bracket:' : 'ရမှတ်အပိုင်းအခြား:'}</span>
                           <span>{row.range}</span>
                         </div>
                       </div>
@@ -926,8 +692,7 @@ export default function IntroPage({ onClose, currentPoints }: IntroPageProps) {
                   <motion.div variants={featureChildVariants} className="flex gap-2.5 items-start text-[10px] text-slate-500 bg-slate-950/20 p-2.5 rounded-lg border border-slate-900">
                     <Award className="w-3.5 h-3.5 text-violet-400 shrink-0 mt-0.5" />
                     <div className="flex flex-col">
-                      <span>{translations.en.feat3Tip}</span>
-                      <span className="text-slate-500/85 text-[9px] mt-0.5">{translations.my.feat3Tip}</span>
+                      <span>{t.feat3Tip}</span>
                     </div>
                   </motion.div>
                 </motion.div>
@@ -946,18 +711,12 @@ export default function IntroPage({ onClose, currentPoints }: IntroPageProps) {
                     <span className="text-[9px] font-mono text-cyan-400 uppercase tracking-widest font-black">MODULE 04</span>
                     <div className="flex flex-col gap-0.5">
                       <h3 className="text-white font-sans font-black text-sm sm:text-lg">
-                        {translations.en.feat4Title}
+                        {t.feat4Title}
                       </h3>
-                      <p className="text-[11px] sm:text-xs text-cyan-400 font-bold tracking-wide leading-tight">
-                        {translations.my.feat4Title}
-                      </p>
                     </div>
                     <div className="flex flex-col gap-1 mt-2">
                       <p className="text-slate-300 text-xs leading-relaxed font-sans">
-                        {translations.en.feat4Desc}
-                      </p>
-                      <p className="text-slate-400/90 text-[11px] leading-relaxed font-sans">
-                        {translations.my.feat4Desc}
+                        {t.feat4Desc}
                       </p>
                     </div>
                   </motion.div>
@@ -968,12 +727,8 @@ export default function IntroPage({ onClose, currentPoints }: IntroPageProps) {
                         <Clock className="w-4 h-4" />
                       </div>
                       <div className="flex flex-col gap-0.5">
-                        <div className="flex flex-wrap items-baseline gap-1.5">
-                          <h5 className="text-white font-bold text-[11px]">{translations.en.feat4OwlTitle}</h5>
-                          <span className="text-[10px] text-emerald-400 font-semibold font-sans">({translations.my.feat4OwlTitle})</span>
-                        </div>
-                        <p className="text-slate-400 text-[10px] leading-normal mt-0.5">{translations.en.feat4OwlDesc}</p>
-                        <p className="text-slate-500 text-[9.5px] leading-normal">{translations.my.feat4OwlDesc}</p>
+                        <h5 className="text-white font-bold text-[11px]">{t.feat4OwlTitle}</h5>
+                        <p className="text-slate-400 text-[10px] leading-normal mt-0.5">{t.feat4OwlDesc}</p>
                       </div>
                     </div>
                     
@@ -982,12 +737,8 @@ export default function IntroPage({ onClose, currentPoints }: IntroPageProps) {
                         <Shield className="w-4 h-4" />
                       </div>
                       <div className="flex flex-col gap-0.5">
-                        <div className="flex flex-wrap items-baseline gap-1.5">
-                          <h5 className="text-white font-bold text-[11px]">{translations.en.feat4WeekendTitle}</h5>
-                          <span className="text-[10px] text-cyan-400 font-semibold font-sans">({translations.my.feat4WeekendTitle})</span>
-                        </div>
-                        <p className="text-slate-400 text-[10px] leading-normal mt-0.5">{translations.en.feat4WeekendDesc}</p>
-                        <p className="text-slate-500 text-[9.5px] leading-normal">{translations.my.feat4WeekendDesc}</p>
+                        <h5 className="text-white font-bold text-[11px]">{t.feat4WeekendTitle}</h5>
+                        <p className="text-slate-400 text-[10px] leading-normal mt-0.5">{t.feat4WeekendDesc}</p>
                       </div>
                     </div>
 
@@ -996,12 +747,8 @@ export default function IntroPage({ onClose, currentPoints }: IntroPageProps) {
                         <Calendar className="w-4 h-4" />
                       </div>
                       <div className="flex flex-col gap-0.5">
-                        <div className="flex flex-wrap items-baseline gap-1.5">
-                          <h5 className="text-white font-bold text-[11px]">{translations.en.feat4SelectiveTitle}</h5>
-                          <span className="text-[10px] text-amber-400 font-semibold font-sans">({translations.my.feat4SelectiveTitle})</span>
-                        </div>
-                        <p className="text-slate-400 text-[10px] leading-normal mt-0.5">{translations.en.feat4SelectiveDesc}</p>
-                        <p className="text-slate-500 text-[9.5px] leading-normal">{translations.my.feat4SelectiveDesc}</p>
+                        <h5 className="text-white font-bold text-[11px]">{t.feat4SelectiveTitle}</h5>
+                        <p className="text-slate-400 text-[10px] leading-normal mt-0.5">{t.feat4SelectiveDesc}</p>
                       </div>
                     </div>
                   </motion.div>
@@ -1165,7 +912,13 @@ export default function IntroPage({ onClose, currentPoints }: IntroPageProps) {
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.98 }}
-            onClick={onClose}
+            onClick={() => {
+              if (currentUser || isGuestMode) {
+                onClose();
+              } else {
+                onNavigateToAuth();
+              }
+            }}
             className="w-full md:w-auto px-6 py-3 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs uppercase tracking-wider rounded-xl transition-all shadow-[0_0_15px_rgba(16,185,129,0.3)] hover:shadow-[0_0_20px_rgba(16,185,129,0.5)] cursor-pointer shrink-0"
           >
             {t.startBtn}
