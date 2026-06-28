@@ -235,24 +235,120 @@ export default function IntroPage({ onClose, currentPoints }: IntroPageProps) {
 
   const t = translations[lang];
 
-  // Framer motion variants
+  // Framer motion variants - Premium performance settings with spring kinetics
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: {
       opacity: 1,
       transition: {
-        staggerChildren: 0.08,
-        delayChildren: 0.1
+        staggerChildren: 0.1,
+        delayChildren: 0.05
       }
     }
   };
 
   const itemVariants = {
-    hidden: { opacity: 0, y: 25 },
+    hidden: { opacity: 0, y: 30, scale: 0.95 },
     visible: {
       opacity: 1,
       y: 0,
-      transition: { type: "spring", stiffness: 260, damping: 20 }
+      scale: 1,
+      transition: { type: "spring", stiffness: 180, damping: 18 }
+    }
+  };
+
+  // Hero section custom entrance variants
+  const heroContainerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.12,
+        delayChildren: 0.1
+      }
+    }
+  };
+
+  const heroChildVariants = {
+    hidden: { opacity: 0, y: 35, scale: 0.98 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      scale: 1,
+      transition: { type: "spring", stiffness: 140, damping: 16 }
+    }
+  };
+
+  // Features detail transition parameters
+  const featurePanelVariants = {
+    hidden: { opacity: 0, y: 15, scale: 0.98 },
+    visible: { 
+      opacity: 1, 
+      y: 0, 
+      scale: 1,
+      transition: {
+        type: "spring",
+        stiffness: 180,
+        damping: 20,
+        staggerChildren: 0.08
+      }
+    },
+    exit: { 
+      opacity: 0, 
+      y: -15, 
+      scale: 0.98,
+      transition: { duration: 0.15 } 
+    }
+  };
+
+  const featureChildVariants = {
+    hidden: { opacity: 0, y: 12 },
+    visible: { 
+      opacity: 1, 
+      y: 0,
+      transition: { type: "spring", stiffness: 200, damping: 20 }
+    }
+  };
+
+  // Progression grid scroll animation variants
+  const progressionContainerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.06
+      }
+    }
+  };
+
+  const progressionItemVariants = {
+    hidden: { opacity: 0, y: 40, scale: 0.92 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      scale: 1,
+      transition: { type: "spring", stiffness: 160, damping: 18 }
+    }
+  };
+
+  // Roadmap list container animation variants
+  const roadmapContainerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.12
+      }
+    }
+  };
+
+  const roadmapItemVariants = {
+    hidden: { opacity: 0, x: -25, scale: 0.97 },
+    visible: {
+      opacity: 1,
+      x: 0,
+      scale: 1,
+      transition: { type: "spring", stiffness: 180, damping: 18 }
     }
   };
 
@@ -269,9 +365,50 @@ export default function IntroPage({ onClose, currentPoints }: IntroPageProps) {
   return (
     <div className="fixed inset-0 z-50 bg-slate-950/98 backdrop-blur-2xl overflow-y-auto text-slate-200 antialiased font-sans flex flex-col pb-12">
       {/* GLOWING AMBIENT BACKGROUNDS */}
-      <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-emerald-500/5 rounded-full blur-[120px] pointer-events-none"></div>
-      <div className="absolute top-[800px] right-1/4 w-[500px] h-[500px] bg-amber-500/5 rounded-full blur-[120px] pointer-events-none"></div>
-      <div className="absolute bottom-10 left-1/3 w-[600px] h-[600px] bg-blue-500/5 rounded-full blur-[150px] pointer-events-none"></div>
+      <motion.div 
+        animate={{
+          scale: [1, 1.2, 1],
+          opacity: [0.6, 0.9, 0.6],
+          x: [0, 30, 0],
+          y: [0, -20, 0]
+        }}
+        transition={{
+          duration: 12,
+          repeat: Infinity,
+          ease: "easeInOut"
+        }}
+        className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-emerald-500/10 rounded-full blur-[120px] pointer-events-none"
+      />
+      <motion.div 
+        animate={{
+          scale: [1, 1.15, 1],
+          opacity: [0.5, 0.8, 0.5],
+          x: [0, -40, 0],
+          y: [0, 30, 0]
+        }}
+        transition={{
+          duration: 15,
+          repeat: Infinity,
+          ease: "easeInOut",
+          delay: 2
+        }}
+        className="absolute top-[800px] right-1/4 w-[500px] h-[500px] bg-amber-500/10 rounded-full blur-[120px] pointer-events-none"
+      />
+      <motion.div 
+        animate={{
+          scale: [1, 1.25, 1],
+          opacity: [0.4, 0.7, 0.4],
+          x: [20, -20, 20],
+          y: [-10, 20, -10]
+        }}
+        transition={{
+          duration: 18,
+          repeat: Infinity,
+          ease: "easeInOut",
+          delay: 1
+        }}
+        className="absolute bottom-10 left-1/3 w-[600px] h-[600px] bg-blue-500/10 rounded-full blur-[150px] pointer-events-none"
+      />
 
       {/* STICKY TOP FLOATING NAVBAR */}
       <header className="sticky top-0 z-40 bg-slate-950/80 backdrop-blur-md border-b border-slate-900 px-6 py-4">
@@ -291,30 +428,42 @@ export default function IntroPage({ onClose, currentPoints }: IntroPageProps) {
           </div>
 
           <div className="flex items-center gap-3.5">
-            {/* Bilingual Switcher Widget */}
-            <div className="flex items-center bg-slate-900 border border-slate-800 p-0.5 rounded-xl">
-              <button
-                type="button"
-                onClick={() => setLang('en')}
-                className={`px-3 py-1 text-[10px] font-black uppercase rounded-lg transition-all cursor-pointer flex items-center gap-1 ${
-                  lang === 'en'
-                    ? 'bg-emerald-500 text-slate-950 shadow-[0_2px_8px_rgba(16,185,129,0.3)]'
-                    : 'text-slate-400 hover:text-slate-200'
-                }`}
-              >
-                EN
-              </button>
-              <button
-                type="button"
-                onClick={() => setLang('my')}
-                className={`px-3 py-1 text-[10px] font-black uppercase rounded-lg transition-all cursor-pointer flex items-center gap-1 ${
-                  lang === 'my'
-                    ? 'bg-emerald-500 text-slate-950 shadow-[0_2px_8px_rgba(16,185,129,0.3)]'
-                    : 'text-slate-400 hover:text-slate-200'
-                }`}
-              >
-                မြန်မာ
-              </button>
+            {/* Bilingual Switcher Widget with beautiful morphing transition */}
+            <div className="flex items-center bg-slate-950/80 border border-slate-800 p-1 rounded-xl relative overflow-hidden">
+              <div className="flex relative z-10">
+                <button
+                  type="button"
+                  onClick={() => setLang('en')}
+                  className={`px-3 py-1.5 text-[10px] font-black uppercase rounded-lg cursor-pointer transition-colors duration-200 flex items-center justify-center min-w-[48px] relative ${
+                    lang === 'en' ? 'text-slate-950 font-black' : 'text-slate-400 hover:text-slate-200'
+                  }`}
+                >
+                  {lang === 'en' && (
+                    <motion.span 
+                      layoutId="activeLangIndicator"
+                      className="absolute inset-0 bg-emerald-400 rounded-lg -z-10 shadow-[0_2px_10px_rgba(16,185,129,0.4)]"
+                      transition={{ type: "spring", stiffness: 350, damping: 25 }}
+                    />
+                  )}
+                  EN
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setLang('my')}
+                  className={`px-3 py-1.5 text-[10px] font-black uppercase rounded-lg cursor-pointer transition-colors duration-200 flex items-center justify-center min-w-[56px] relative ${
+                    lang === 'my' ? 'text-slate-950 font-black' : 'text-slate-400 hover:text-slate-200'
+                  }`}
+                >
+                  {lang === 'my' && (
+                    <motion.span 
+                      layoutId="activeLangIndicator"
+                      className="absolute inset-0 bg-emerald-400 rounded-lg -z-10 shadow-[0_2px_10px_rgba(16,185,129,0.4)]"
+                      transition={{ type: "spring", stiffness: 350, damping: 25 }}
+                    />
+                  )}
+                  မြန်မာ
+                </button>
+              </div>
             </div>
 
             <button 
@@ -330,32 +479,51 @@ export default function IntroPage({ onClose, currentPoints }: IntroPageProps) {
 
       {/* HERO SECTION */}
       <motion.section 
-        initial={{ opacity: 0, y: 30 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6, ease: "easeOut" }}
+        variants={heroContainerVariants}
+        initial="hidden"
+        animate="visible"
         className="relative px-6 pt-16 pb-14 text-center max-w-4xl mx-auto flex flex-col items-center gap-6"
       >
-        <div className="inline-flex items-center gap-2 px-3.5 py-1 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-full text-[10px] font-mono uppercase tracking-widest font-black animate-pulse">
+        <motion.div 
+          variants={heroChildVariants}
+          className="inline-flex items-center gap-2 px-3.5 py-1 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-full text-[10px] font-mono uppercase tracking-widest font-black animate-pulse"
+        >
           <Sparkles className="w-3 h-3 text-amber-400" /> {t.heroTag}
-        </div>
+        </motion.div>
 
-        <h2 className="font-sans font-black text-4xl md:text-5xl lg:text-6xl text-white tracking-tight leading-[1.1] max-w-3xl">
+        <motion.h2 
+          variants={heroChildVariants}
+          className="font-sans font-black text-4xl md:text-5xl lg:text-6xl text-white tracking-tight leading-[1.1] max-w-3xl"
+        >
           {t.heroTitle} <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 via-teal-400 to-amber-300">{t.heroTitleHighlight}</span>
-        </h2>
+        </motion.h2>
 
-        <p className="text-slate-400 text-sm md:text-base leading-relaxed max-w-2xl mt-1">
+        <motion.p 
+          variants={heroChildVariants}
+          className="text-slate-400 text-sm md:text-base leading-relaxed max-w-2xl mt-1"
+        >
           {t.heroDesc}
-        </p>
+        </motion.p>
 
-        <div className="flex flex-col sm:flex-row items-center gap-4 mt-4 w-full sm:w-auto">
+        <motion.div 
+          variants={heroChildVariants}
+          className="flex flex-col sm:flex-row items-center gap-4 mt-4 w-full sm:w-auto"
+        >
           <motion.button
             whileHover={{ scale: 1.04 }}
             whileTap={{ scale: 0.98 }}
             onClick={onClose}
-            className="w-full sm:w-auto px-8 py-3.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs uppercase tracking-wider rounded-xl transition-all shadow-[0_0_20px_rgba(16,185,129,0.3)] hover:shadow-[0_0_25px_rgba(16,185,129,0.5)] cursor-pointer"
+            className="relative overflow-hidden group/btn w-full sm:w-auto px-8 py-3.5 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-black text-xs uppercase tracking-wider rounded-xl transition-all shadow-[0_0_20px_rgba(16,185,129,0.3)] hover:shadow-[0_0_25px_rgba(16,185,129,0.5)] cursor-pointer"
           >
+            <motion.div 
+              initial={{ x: "-100%" }}
+              whileHover={{ x: "100%" }}
+              transition={{ repeat: Infinity, repeatType: "loop", duration: 1, ease: "linear" }}
+              className="absolute inset-0 bg-gradient-to-r from-transparent via-white/25 to-transparent -skew-x-12 pointer-events-none"
+            />
             {t.startBtn}
           </motion.button>
+          
           <motion.a
             whileHover={{ scale: 1.04 }}
             whileTap={{ scale: 0.98 }}
@@ -364,7 +532,7 @@ export default function IntroPage({ onClose, currentPoints }: IntroPageProps) {
           >
             {t.seeHowBtn}
           </motion.a>
-        </div>
+        </motion.div>
       </motion.section>
 
       {/* THREE EXCLUSIVE PILLARS HERO BANNER */}
@@ -378,13 +546,20 @@ export default function IntroPage({ onClose, currentPoints }: IntroPageProps) {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <motion.div 
             variants={itemVariants}
-            className="bg-slate-900/30 border border-slate-800/60 p-6 rounded-2xl flex flex-col gap-3 relative overflow-hidden group hover:border-emerald-500/30 transition-all shadow-lg"
+            whileHover={{ 
+              y: -8, 
+              scale: 1.02,
+              borderColor: "rgba(16, 185, 129, 0.4)",
+              boxShadow: "0 10px 30px -10px rgba(16, 185, 129, 0.15)"
+            }}
+            transition={{ type: "spring", stiffness: 300, damping: 20 }}
+            className="bg-slate-900/35 border border-slate-850/80 p-6 rounded-2xl flex flex-col gap-3.5 relative overflow-hidden group cursor-pointer shadow-lg"
           >
             <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-500/5 rounded-full blur-2xl"></div>
-            <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-xl w-fit">
+            <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-xl w-fit group-hover:scale-110 group-hover:bg-emerald-500/25 transition-all duration-300">
               <BarChart3 className="w-5 h-5" />
             </div>
-            <h3 className="text-white font-bold text-base font-sans">{t.pillar1Title}</h3>
+            <h3 className="text-white font-bold text-base font-sans group-hover:text-emerald-400 transition-colors">{t.pillar1Title}</h3>
             <p className="text-slate-400 text-xs leading-relaxed font-sans">
               {t.pillar1Desc}
             </p>
@@ -392,13 +567,20 @@ export default function IntroPage({ onClose, currentPoints }: IntroPageProps) {
 
           <motion.div 
             variants={itemVariants}
-            className="bg-slate-900/30 border border-slate-800/60 p-6 rounded-2xl flex flex-col gap-3 relative overflow-hidden group hover:border-amber-500/30 transition-all shadow-lg"
+            whileHover={{ 
+              y: -8, 
+              scale: 1.02,
+              borderColor: "rgba(245, 158, 11, 0.4)",
+              boxShadow: "0 10px 30px -10px rgba(245, 158, 11, 0.15)"
+            }}
+            transition={{ type: "spring", stiffness: 300, damping: 20 }}
+            className="bg-slate-900/35 border border-slate-850/80 p-6 rounded-2xl flex flex-col gap-3.5 relative overflow-hidden group cursor-pointer shadow-lg"
           >
             <div className="absolute top-0 right-0 w-24 h-24 bg-amber-500/5 rounded-full blur-2xl"></div>
-            <div className="p-3 bg-amber-500/10 border border-amber-500/20 text-amber-400 rounded-xl w-fit">
+            <div className="p-3 bg-amber-500/10 border border-amber-500/20 text-amber-400 rounded-xl w-fit group-hover:scale-110 group-hover:bg-amber-500/25 transition-all duration-300">
               <TrendingUp className="w-5 h-5 animate-pulse" />
             </div>
-            <h3 className="text-white font-bold text-base font-sans">{t.pillar2Title}</h3>
+            <h3 className="text-white font-bold text-base font-sans group-hover:text-amber-400 transition-colors">{t.pillar2Title}</h3>
             <p className="text-slate-400 text-xs leading-relaxed font-sans">
               {t.pillar2Desc}
             </p>
@@ -406,13 +588,20 @@ export default function IntroPage({ onClose, currentPoints }: IntroPageProps) {
 
           <motion.div 
             variants={itemVariants}
-            className="bg-slate-900/30 border border-slate-800/60 p-6 rounded-2xl flex flex-col gap-3 relative overflow-hidden group hover:border-cyan-500/30 transition-all shadow-lg"
+            whileHover={{ 
+              y: -8, 
+              scale: 1.02,
+              borderColor: "rgba(6, 182, 212, 0.4)",
+              boxShadow: "0 10px 30px -10px rgba(6, 182, 212, 0.15)"
+            }}
+            transition={{ type: "spring", stiffness: 300, damping: 20 }}
+            className="bg-slate-900/35 border border-slate-850/80 p-6 rounded-2xl flex flex-col gap-3.5 relative overflow-hidden group cursor-pointer shadow-lg"
           >
             <div className="absolute top-0 right-0 w-24 h-24 bg-cyan-500/5 rounded-full blur-2xl"></div>
-            <div className="p-3 bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 rounded-xl w-fit">
+            <div className="p-3 bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 rounded-xl w-fit group-hover:scale-110 group-hover:bg-cyan-500/25 transition-all duration-300">
               <Shield className="w-5 h-5" />
             </div>
-            <h3 className="text-white font-bold text-base font-sans">{t.pillar3Title}</h3>
+            <h3 className="text-white font-bold text-base font-sans group-hover:text-cyan-400 transition-colors">{t.pillar3Title}</h3>
             <p className="text-slate-400 text-xs leading-relaxed font-sans">
               {t.pillar3Desc}
             </p>
@@ -432,22 +621,24 @@ export default function IntroPage({ onClose, currentPoints }: IntroPageProps) {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-8 items-start">
           {/* Left Feature Buttons Selector */}
-          <div className="lg:col-span-4 flex flex-col gap-2.5">
+          <div className="lg:col-span-4 grid grid-cols-2 lg:grid-cols-1 gap-2.5 sm:gap-3.5">
             {[
-              { id: 'chart', title: t.tabChart, desc: t.tabChartDesc, icon: LineChart },
-              { id: 'predictions', title: t.tabPredict, desc: t.tabPredictDesc, icon: Coins },
-              { id: 'rankings', title: t.tabRanks, desc: t.tabRanksDesc, icon: Award },
-              { id: 'schedule', title: t.tabRules, desc: t.tabRulesDesc, icon: Clock },
+              { id: 'chart', enKey: 'tabChart', myKey: 'tabChart', enDescKey: 'tabChartDesc', icon: LineChart },
+              { id: 'predictions', enKey: 'tabPredict', myKey: 'tabPredict', enDescKey: 'tabPredictDesc', icon: Coins },
+              { id: 'rankings', enKey: 'tabRanks', myKey: 'tabRanks', enDescKey: 'tabRanksDesc', icon: Award },
+              { id: 'schedule', enKey: 'tabRules', myKey: 'tabRules', enDescKey: 'tabRulesDesc', icon: Clock },
             ].map((f) => {
               const Icon = f.icon;
               const isSelected = activeFeatureTab === f.id;
               return (
-                <button
+                <motion.button
                   key={f.id}
+                  whileHover={{ scale: 1.02, x: 4 }}
+                  whileTap={{ scale: 0.98 }}
                   onClick={() => setActiveFeatureTab(f.id as any)}
-                  className={`text-left p-4 rounded-xl border transition-all cursor-pointer flex items-start gap-3.5 relative overflow-hidden ${
+                  className={`text-left p-3 sm:p-4 rounded-xl border transition-all cursor-pointer flex flex-col sm:flex-row items-start gap-2.5 sm:gap-3.5 relative overflow-hidden h-full ${
                     isSelected 
                       ? 'bg-slate-900 border-emerald-500/40 text-emerald-400 shadow-md ring-1 ring-emerald-500/20' 
                       : 'bg-slate-950/20 border-slate-900 hover:border-slate-800/80 text-slate-400 hover:text-slate-300'
@@ -456,259 +647,370 @@ export default function IntroPage({ onClose, currentPoints }: IntroPageProps) {
                   {isSelected && (
                     <motion.div 
                       layoutId="activeTabIndicator"
-                      className="absolute left-0 top-0 bottom-0 w-[3px] bg-emerald-500"
+                      className="absolute left-0 top-0 bottom-0 w-[3px] bg-emerald-500 hidden sm:block"
                       transition={{ type: "spring", stiffness: 380, damping: 30 }}
                     />
                   )}
-                  <div className={`p-2 rounded-lg ${isSelected ? 'bg-emerald-500/10 text-emerald-400' : 'bg-slate-900 text-slate-500'}`}>
-                    <Icon className="w-4 h-4" />
+                  {isSelected && (
+                    <motion.div 
+                      layoutId="activeTabIndicatorMobile"
+                      className="absolute top-0 left-0 right-0 h-[3px] bg-emerald-500 sm:hidden"
+                      transition={{ type: "spring", stiffness: 380, damping: 30 }}
+                    />
+                  )}
+                  <div className={`p-1.5 sm:p-2 rounded-lg shrink-0 ${isSelected ? 'bg-emerald-500/10 text-emerald-400' : 'bg-slate-900 text-slate-500'}`}>
+                    <Icon className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                   </div>
-                  <div>
-                    <h4 className={`text-xs font-black font-sans uppercase tracking-wide ${isSelected ? 'text-white' : 'text-slate-300'}`}>
-                      {f.title}
+                  <div className="flex flex-col gap-0.5">
+                    <h4 className={`text-[10px] sm:text-xs font-black font-sans uppercase tracking-wide ${isSelected ? 'text-white' : 'text-slate-300'}`}>
+                      {translations.en[f.enKey as keyof typeof translations.en]}
                     </h4>
-                    <p className="text-[11px] text-slate-500 mt-1 leading-relaxed">
-                      {f.desc}
+                    <p className="text-[9px] sm:text-[10px] text-slate-500 font-semibold leading-tight Myanmar-font">
+                      {translations.my[f.myKey as keyof typeof translations.my]}
+                    </p>
+                    <p className="text-[9px] text-slate-600 font-normal leading-relaxed mt-1 hidden md:block">
+                      {translations.en[f.enDescKey as keyof typeof translations.en]}
                     </p>
                   </div>
-                </button>
+                </motion.button>
               );
             })}
           </div>
 
           {/* Right Detailed Panel View */}
-          <div className="lg:col-span-8 bg-slate-900/40 border border-slate-850 p-6 rounded-2xl flex flex-col gap-5 min-h-[380px] justify-between shadow-xl relative overflow-hidden">
+          <div className="lg:col-span-8 bg-slate-900/40 border border-slate-850 p-4 sm:p-6 rounded-2xl flex flex-col gap-5 min-h-[320px] lg:min-h-[380px] justify-between shadow-xl relative overflow-hidden">
             <div className="absolute top-0 right-0 w-36 h-36 bg-slate-800/5 rounded-full blur-3xl pointer-events-none"></div>
             
             <AnimatePresence mode="wait">
               {activeFeatureTab === 'chart' && (
                 <motion.div 
                   key="chart"
-                  initial={{ opacity: 0, x: 15 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -15 }}
-                  transition={{ duration: 0.2 }}
+                  variants={featurePanelVariants}
+                  initial="hidden"
+                  animate="visible"
+                  exit="exit"
                   className="flex flex-col gap-4"
                 >
-                  <div className="flex flex-col gap-1">
+                  <motion.div variants={featureChildVariants} className="flex flex-col gap-1.5">
                     <span className="text-[9px] font-mono text-emerald-400 uppercase tracking-widest font-black">MODULE 01</span>
-                    <h3 className="text-white font-sans font-black text-lg">
-                      {t.feat1Title}
-                    </h3>
-                    <p className="text-slate-400 text-xs leading-relaxed mt-1">
-                      {t.feat1Desc}
-                    </p>
-                  </div>
+                    <div className="flex flex-col gap-0.5">
+                      <h3 className="text-white font-sans font-black text-sm sm:text-lg">
+                        {translations.en.feat1Title}
+                      </h3>
+                      <p className="text-[11px] sm:text-xs text-emerald-400/80 font-bold tracking-wide leading-tight">
+                        {translations.my.feat1Title}
+                      </p>
+                    </div>
+                    <div className="flex flex-col gap-1 mt-2">
+                      <p className="text-slate-300 text-xs leading-relaxed font-sans">
+                        {translations.en.feat1Desc}
+                      </p>
+                      <p className="text-slate-400/90 text-[11px] leading-relaxed font-sans">
+                        {translations.my.feat1Desc}
+                      </p>
+                    </div>
+                  </motion.div>
 
-                  <div className="bg-slate-950/60 p-4 rounded-xl border border-slate-900 flex flex-col gap-3 font-mono text-xs">
-                    <div className="flex items-center justify-between text-slate-400 border-b border-slate-800/80 pb-2">
-                      <span className="text-[10px] font-bold uppercase tracking-wider">{lang === 'en' ? 'Habit Completion Level' : 'အလေ့အကျင့် ပြီးမြောက်မှု အတိုင်းအတာ'}</span>
-                      <span className="text-[10px] font-bold uppercase tracking-wider">{lang === 'en' ? 'Index Candlestick Output' : 'ဈေးကွက်တန်ဖိုး အကျိုးသက်ရောက်မှု'}</span>
+                  <motion.div variants={featureChildVariants} className="bg-slate-950/60 p-3 sm:p-4 rounded-xl border border-slate-900 flex flex-col gap-3 font-mono text-xs">
+                    <div className="flex items-center justify-between text-slate-500 border-b border-slate-800/80 pb-2">
+                      <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider">Habit Completion / ပြီးမြောက်မှု</span>
+                      <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-right">Index Output / အကျိုးသက်ရောက်မှု</span>
                     </div>
                     
-                    <div className="flex justify-between items-start text-[11px] gap-4">
-                      <span className="text-emerald-400 flex items-center gap-1.5 shrink-0">🟢 {t.feat1Sub1}</span>
-                      <span className="text-emerald-400 font-medium text-right">{t.feat1Sub1Desc}</span>
+                    <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start text-[11px] gap-1 sm:gap-4">
+                      <div className="flex flex-col shrink-0">
+                        <span className="text-emerald-400 flex items-center gap-1.5 font-bold">🟢 {translations.en.feat1Sub1}</span>
+                        <span className="text-[10px] text-emerald-500/85 pl-5 sm:pl-5">{translations.my.feat1Sub1}</span>
+                      </div>
+                      <div className="flex flex-col sm:text-right pl-5 sm:pl-0">
+                        <span className="text-slate-200">{translations.en.feat1Sub1Desc.split(': ')[1] || translations.en.feat1Sub1Desc}</span>
+                        <span className="text-[10px] text-slate-400">{translations.my.feat1Sub1Desc.split(': ')[1] || translations.my.feat1Sub1Desc}</span>
+                      </div>
                     </div>
-                    <div className="flex justify-between items-start text-[11px] gap-4 border-t border-slate-900 pt-2">
-                      <span className="text-amber-400 flex items-center gap-1.5 shrink-0">🟡 {t.feat1Sub2}</span>
-                      <span className="text-slate-300 font-medium text-right">{t.feat1Sub2Desc}</span>
-                    </div>
-                    <div className="flex justify-between items-start text-[11px] gap-4 border-t border-slate-900 pt-2">
-                      <span className="text-rose-400 flex items-center gap-1.5 shrink-0">🔴 {t.feat1Sub3}</span>
-                      <span className="text-rose-400 font-medium text-right">{t.feat1Sub3Desc}</span>
-                    </div>
-                  </div>
 
-                  <div className="flex gap-2.5 items-start text-[10px] text-slate-500 bg-slate-950/20 p-2.5 rounded-lg border border-slate-900">
+                    <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start text-[11px] gap-1 sm:gap-4 border-t border-slate-900 pt-2">
+                      <div className="flex flex-col shrink-0">
+                        <span className="text-amber-400 flex items-center gap-1.5 font-bold">🟡 {translations.en.feat1Sub2}</span>
+                        <span className="text-[10px] text-amber-500/85 pl-5 sm:pl-5">{translations.my.feat1Sub2}</span>
+                      </div>
+                      <div className="flex flex-col sm:text-right pl-5 sm:pl-0">
+                        <span className="text-slate-200">{translations.en.feat1Sub2Desc.split(': ')[1] || translations.en.feat1Sub2Desc}</span>
+                        <span className="text-[10px] text-slate-400">{translations.my.feat1Sub2Desc.split(': ')[1] || translations.my.feat1Sub2Desc}</span>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start text-[11px] gap-1 sm:gap-4 border-t border-slate-900 pt-2">
+                      <div className="flex flex-col shrink-0">
+                        <span className="text-rose-400 flex items-center gap-1.5 font-bold">🔴 {translations.en.feat1Sub3}</span>
+                        <span className="text-[10px] text-rose-500/85 pl-5 sm:pl-5">{translations.my.feat1Sub3}</span>
+                      </div>
+                      <div className="flex flex-col sm:text-right pl-5 sm:pl-0">
+                        <span className="text-rose-450">{translations.en.feat1Sub3Desc.split(': ')[1] || translations.en.feat1Sub3Desc}</span>
+                        <span className="text-[10px] text-rose-400">{translations.my.feat1Sub3Desc.split(': ')[1] || translations.my.feat1Sub3Desc}</span>
+                      </div>
+                    </div>
+                  </motion.div>
+
+                  <motion.div variants={featureChildVariants} className="flex gap-2.5 items-start text-[10px] text-slate-500 bg-slate-950/20 p-2.5 rounded-lg border border-slate-900">
                     <Info className="w-3.5 h-3.5 text-blue-400 shrink-0 mt-0.5" />
-                    <span>{t.feat1Tip}</span>
-                  </div>
+                    <div className="flex flex-col">
+                      <span>{translations.en.feat1Tip}</span>
+                      <span className="text-slate-500/85 text-[9px] mt-0.5">{translations.my.feat1Tip}</span>
+                    </div>
+                  </motion.div>
                 </motion.div>
               )}
 
               {activeFeatureTab === 'predictions' && (
                 <motion.div 
                   key="predictions"
-                  initial={{ opacity: 0, x: 15 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -15 }}
-                  transition={{ duration: 0.2 }}
+                  variants={featurePanelVariants}
+                  initial="hidden"
+                  animate="visible"
+                  exit="exit"
                   className="flex flex-col gap-4"
                 >
-                  <div className="flex flex-col gap-1">
+                  <motion.div variants={featureChildVariants} className="flex flex-col gap-1.5">
                     <span className="text-[9px] font-mono text-amber-400 uppercase tracking-widest font-black">MODULE 02</span>
-                    <h3 className="text-white font-sans font-black text-lg">
-                      {t.feat2Title}
-                    </h3>
-                    <p className="text-slate-400 text-xs leading-relaxed mt-1">
-                      {t.feat2Desc}
-                    </p>
-                  </div>
+                    <div className="flex flex-col gap-0.5">
+                      <h3 className="text-white font-sans font-black text-sm sm:text-lg">
+                        {translations.en.feat2Title}
+                      </h3>
+                      <p className="text-[11px] sm:text-xs text-amber-400/80 font-bold tracking-wide leading-tight">
+                        {translations.my.feat2Title}
+                      </p>
+                    </div>
+                    <div className="flex flex-col gap-1 mt-2">
+                      <p className="text-slate-300 text-xs leading-relaxed font-sans">
+                        {translations.en.feat2Desc}
+                      </p>
+                      <p className="text-slate-400/90 text-[11px] leading-relaxed font-sans">
+                        {translations.my.feat2Desc}
+                      </p>
+                    </div>
+                  </motion.div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                    <div className="bg-slate-950/60 p-3.5 rounded-xl border border-slate-900 flex flex-col gap-1.5 text-center relative group hover:border-emerald-500/30 transition-colors">
-                      <span className="text-[9px] font-mono text-emerald-400 font-black tracking-wider uppercase">{t.feat2Low}</span>
-                      <span className="text-xs text-white font-black">{t.feat2LowTitle}</span>
-                      <span className="text-[10px] text-slate-500 leading-normal mt-0.5">{t.feat2LowDesc}</span>
-                    </div>
-                    <div className="bg-slate-950/60 p-3.5 rounded-xl border border-slate-900 flex flex-col gap-1.5 text-center relative group hover:border-cyan-500/30 transition-colors">
-                      <span className="text-[9px] font-mono text-cyan-400 font-black tracking-wider uppercase">{t.feat2Med}</span>
-                      <span className="text-xs text-white font-black">{t.feat2MedTitle}</span>
-                      <span className="text-[10px] text-slate-500 leading-normal mt-0.5">{t.feat2MedDesc}</span>
-                    </div>
-                    <div className="bg-slate-950/60 p-3.5 rounded-xl border border-slate-900 flex flex-col gap-1.5 text-center relative group hover:border-amber-500/30 transition-colors">
-                      <span className="text-[9px] font-mono text-amber-400 font-black tracking-wider uppercase">{t.feat2High}</span>
-                      <span className="text-xs text-white font-black">{t.feat2HighTitle}</span>
-                      <span className="text-[10px] text-slate-500 leading-normal mt-0.5">{t.feat2HighDesc}</span>
-                    </div>
-                  </div>
+                  <motion.div variants={featureChildVariants} className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <motion.div 
+                      whileHover={{ scale: 1.03, y: -4, borderColor: "rgba(16, 185, 129, 0.4)" }}
+                      className="bg-slate-950/60 p-3 sm:p-3.5 rounded-xl border border-slate-900 flex flex-col gap-1.5 text-center relative group transition-colors"
+                    >
+                      <span className="text-[8px] sm:text-[9px] font-mono text-emerald-400 font-black tracking-wider uppercase">
+                        {translations.en.feat2Low} • {translations.my.feat2Low}
+                      </span>
+                      <div className="flex flex-col gap-0.5 mt-0.5">
+                        <span className="text-xs text-white font-black">{translations.en.feat2LowTitle}</span>
+                        <span className="text-[10px] text-emerald-400 font-medium">{translations.my.feat2LowTitle}</span>
+                      </div>
+                      <div className="flex flex-col gap-1 border-t border-slate-900 pt-1.5 mt-1">
+                        <span className="text-[9px] text-slate-400 leading-snug">{translations.en.feat2LowDesc}</span>
+                        <span className="text-[8.5px] text-slate-500 leading-snug">{translations.my.feat2LowDesc}</span>
+                      </div>
+                    </motion.div>
 
-                  <div className="flex gap-2.5 items-start text-[10px] text-slate-500 bg-slate-950/20 p-2.5 rounded-lg border border-slate-900">
+                    <motion.div 
+                      whileHover={{ scale: 1.03, y: -4, borderColor: "rgba(6, 182, 212, 0.4)" }}
+                      className="bg-slate-950/60 p-3 sm:p-3.5 rounded-xl border border-slate-900 flex flex-col gap-1.5 text-center relative group transition-colors"
+                    >
+                      <span className="text-[8px] sm:text-[9px] font-mono text-cyan-400 font-black tracking-wider uppercase">
+                        {translations.en.feat2Med} • {translations.my.feat2Med}
+                      </span>
+                      <div className="flex flex-col gap-0.5 mt-0.5">
+                        <span className="text-xs text-white font-black">{translations.en.feat2MedTitle}</span>
+                        <span className="text-[10px] text-cyan-400 font-medium">{translations.my.feat2MedTitle}</span>
+                      </div>
+                      <div className="flex flex-col gap-1 border-t border-slate-900 pt-1.5 mt-1">
+                        <span className="text-[9px] text-slate-400 leading-snug">{translations.en.feat2MedDesc}</span>
+                        <span className="text-[8.5px] text-slate-500 leading-snug">{translations.my.feat2MedDesc}</span>
+                      </div>
+                    </motion.div>
+
+                    <motion.div 
+                      whileHover={{ scale: 1.03, y: -4, borderColor: "rgba(245, 158, 11, 0.4)" }}
+                      className="bg-slate-950/60 p-3 sm:p-3.5 rounded-xl border border-slate-900 flex flex-col gap-1.5 text-center relative group transition-colors"
+                    >
+                      <span className="text-[8px] sm:text-[9px] font-mono text-amber-400 font-black tracking-wider uppercase">
+                        {translations.en.feat2High} • {translations.my.feat2High}
+                      </span>
+                      <div className="flex flex-col gap-0.5 mt-0.5">
+                        <span className="text-xs text-white font-black">{translations.en.feat2HighTitle}</span>
+                        <span className="text-[10px] text-amber-400 font-medium">{translations.my.feat2HighTitle}</span>
+                      </div>
+                      <div className="flex flex-col gap-1 border-t border-slate-900 pt-1.5 mt-1">
+                        <span className="text-[9px] text-slate-400 leading-snug">{translations.en.feat2HighDesc}</span>
+                        <span className="text-[8.5px] text-slate-500 leading-snug">{translations.my.feat2HighDesc}</span>
+                      </div>
+                    </motion.div>
+                  </motion.div>
+
+                  <motion.div variants={featureChildVariants} className="flex gap-2.5 items-start text-[10px] text-slate-500 bg-slate-950/20 p-2.5 rounded-lg border border-slate-900">
                     <Zap className="w-3.5 h-3.5 text-amber-400 shrink-0 animate-pulse mt-0.5" />
-                    <span>{t.feat2Tip}</span>
-                  </div>
+                    <div className="flex flex-col">
+                      <span>{translations.en.feat2Tip}</span>
+                      <span className="text-slate-500/85 text-[9px] mt-0.5">{translations.my.feat2Tip}</span>
+                    </div>
+                  </motion.div>
                 </motion.div>
               )}
 
               {activeFeatureTab === 'rankings' && (
                 <motion.div 
                   key="rankings"
-                  initial={{ opacity: 0, x: 15 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -15 }}
-                  transition={{ duration: 0.2 }}
+                  variants={featurePanelVariants}
+                  initial="hidden"
+                  animate="visible"
+                  exit="exit"
                   className="flex flex-col gap-4"
                 >
-                  <div className="flex flex-col gap-1">
+                  <motion.div variants={featureChildVariants} className="flex flex-col gap-1.5">
                     <span className="text-[9px] font-mono text-violet-400 uppercase tracking-widest font-black">MODULE 03</span>
-                    <h3 className="text-white font-sans font-black text-lg">
-                      {t.feat3Title}
-                    </h3>
-                    <p className="text-slate-400 text-xs leading-relaxed mt-1">
-                      {t.feat3Desc}
-                    </p>
-                  </div>
-
-                  <div className="bg-slate-950/60 p-3.5 rounded-xl border border-slate-900 grid grid-cols-2 gap-2 text-xs font-mono max-h-[220px] overflow-y-auto">
-                    <div className="flex justify-between border-b border-slate-900 pb-1.5">
-                      <span className="text-slate-500 text-[10px] uppercase font-bold">{t.feat3ColRank}</span>
-                      <span className="text-slate-400 text-[10px] uppercase font-bold">{t.feat3ColLimits}</span>
+                    <div className="flex flex-col gap-0.5">
+                      <h3 className="text-white font-sans font-black text-sm sm:text-lg">
+                        {translations.en.feat3Title}
+                      </h3>
+                      <p className="text-[11px] sm:text-xs text-violet-400 font-bold tracking-wide leading-tight">
+                        {translations.my.feat3Title}
+                      </p>
                     </div>
-                    <div className="flex justify-between border-b border-slate-900 pb-1.5">
-                      <span className="text-slate-500 text-[10px] uppercase font-bold">{t.feat3ColPenalty}</span>
-                      <span className="text-slate-400 text-[10px] uppercase font-bold">{t.feat3ColRange}</span>
+                    <div className="flex flex-col gap-1 mt-2">
+                      <p className="text-slate-300 text-xs leading-relaxed font-sans">
+                        {translations.en.feat3Desc}
+                      </p>
+                      <p className="text-slate-400/90 text-[11px] leading-relaxed font-sans">
+                        {translations.my.feat3Desc}
+                      </p>
+                    </div>
+                  </motion.div>
+
+                  <motion.div variants={featureChildVariants} className="bg-slate-950/60 p-2.5 sm:p-4 rounded-xl border border-slate-900 flex flex-col gap-2 max-h-[220px] overflow-y-auto custom-scrollbar">
+                    <div className="hidden sm:grid sm:grid-cols-4 text-[10px] font-bold uppercase tracking-wider text-slate-500 border-b border-slate-800/80 pb-2 mb-1">
+                      <span>Rank & Badge / အဆင့်</span>
+                      <span>Max Bet & Leverage</span>
+                      <span>Miss Penalty Multiplier</span>
+                      <span>Points Bracket / ရမှတ်စု</span>
                     </div>
                     
-                    <div className="flex justify-between text-[11px]">
-                      <span className="text-amber-600 font-bold">{t.feat3Bronze}</span>
-                      <span className="text-slate-300 font-bold">100 PTS / 1x</span>
-                    </div>
-                    <div className="flex justify-between text-[11px]">
-                      <span className="text-rose-400">30% Weight</span>
-                      <span className="text-slate-500">0 - 499 PTS</span>
-                    </div>
+                    {[
+                      { rankEn: "Bronze", rankMy: "ကြေးဝါ", badge: "🥉", limits: "100 PTS / 1x", penalty: "30% Penalty", range: "0 - 499 PTS", color: "text-amber-600" },
+                      { rankEn: "Silver", rankMy: "ငွေ", badge: "🥈", limits: "300 PTS / 2x", penalty: "40% Penalty", range: "500 - 1,199 PTS", color: "text-slate-300" },
+                      { rankEn: "Gold", rankMy: "ရွှေ", badge: "🥇", limits: "500 PTS / 3x", penalty: "50% Penalty", range: "1,200 - 1,999 PTS", color: "text-amber-500" },
+                      { rankEn: "Platinum", rankMy: "ပလက်တီနမ်", badge: "💎", limits: "1,000 PTS / 4x", penalty: "60% Penalty", range: "2,000 - 2,999 PTS", color: "text-cyan-400" },
+                      { rankEn: "Diamond", rankMy: "စိန်", badge: "💠", limits: "1,500 PTS / 5x", penalty: "80% Penalty", range: "3,000 - 4,999 PTS", color: "text-sky-400" },
+                      { rankEn: "Crown", rankMy: "သရဖူ", badge: "👑", limits: "3,000 PTS / 8x", penalty: "100% Penalty", range: "5,000 - 11,999 PTS", color: "text-amber-450 font-extrabold" },
+                      { rankEn: "Conqueror", rankMy: "အနိုင်ရသူ", badge: "🌟", limits: "12,000 PTS / 15x", penalty: "150% Penalty", range: "12,000+ PTS", color: "text-emerald-400 font-black animate-pulse" },
+                    ].map((row, rIdx) => (
+                      <div key={rIdx} className="grid grid-cols-1 sm:grid-cols-4 items-center text-[11px] gap-1.5 sm:gap-2 py-2 border-b border-slate-900/40 last:border-0 hover:bg-slate-900/30 px-1.5 rounded-lg transition-colors">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-sm">{row.badge}</span>
+                          <div className="flex flex-row sm:flex-col items-center sm:items-start gap-1 sm:gap-0">
+                            <span className={`${row.color} font-black`}>{row.rankEn}</span>
+                            <span className="text-[10px] text-slate-400">({row.rankMy})</span>
+                          </div>
+                        </div>
+                        <div className="flex sm:block justify-between text-slate-300">
+                          <span className="sm:hidden text-slate-500 text-[9px] uppercase font-bold">Max Bet/Lev:</span>
+                          <span className="font-semibold">{row.limits}</span>
+                        </div>
+                        <div className="flex sm:block justify-between text-rose-450">
+                          <span className="sm:hidden text-slate-500 text-[9px] uppercase font-bold">Penalty:</span>
+                          <span>{row.penalty}</span>
+                        </div>
+                        <div className="flex sm:block justify-between text-slate-500">
+                          <span className="sm:hidden text-slate-500 text-[9px] uppercase font-bold">Points Bracket:</span>
+                          <span>{row.range}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </motion.div>
 
-                    <div className="flex justify-between text-[11px] border-t border-slate-950/60 pt-1">
-                      <span className="text-slate-300 font-bold">🥈 Silver Tier</span>
-                      <span className="text-slate-300 font-bold">300 PTS / 2x</span>
-                    </div>
-                    <div className="flex justify-between text-[11px] border-t border-slate-950/60 pt-1">
-                      <span className="text-rose-450">40% Penalty</span>
-                      <span className="text-slate-500">500 - 1,199 PTS</span>
-                    </div>
-
-                    <div className="flex justify-between text-[11px] border-t border-slate-950/60 pt-1">
-                      <span className="text-amber-500 font-bold">🥇 Gold Tier</span>
-                      <span className="text-slate-300 font-bold">500 PTS / 3x</span>
-                    </div>
-                    <div className="flex justify-between text-[11px] border-t border-slate-950/60 pt-1">
-                      <span className="text-rose-450">50% Penalty</span>
-                      <span className="text-slate-500">1,200 - 1,999 PTS</span>
-                    </div>
-
-                    <div className="flex justify-between text-[11px] border-t border-slate-950/60 pt-1">
-                      <span className="text-sky-400 font-bold">{t.feat3Diamond}</span>
-                      <span className="text-slate-300 font-bold">1,500 PTS / 5x</span>
-                    </div>
-                    <div className="flex justify-between text-[11px] border-t border-slate-950/60 pt-1">
-                      <span className="text-rose-400">80% Penalty</span>
-                      <span className="text-slate-500">3,000 - 4,999 PTS</span>
-                    </div>
-
-                    <div className="flex justify-between text-[11px] border-t border-slate-950/60 pt-1">
-                      <span className="text-amber-400 font-black">{t.feat3Conq}</span>
-                      <span className="text-slate-300 font-bold">12,000 PTS / 15x</span>
-                    </div>
-                    <div className="flex justify-between text-[11px] border-t border-slate-950/60 pt-1">
-                      <span className="text-emerald-400 font-bold">150% Penalty</span>
-                      <span className="text-slate-500">12,000+ PTS</span>
-                    </div>
-                  </div>
-
-                  <div className="flex gap-2.5 items-start text-[10px] text-slate-500 bg-slate-950/20 p-2.5 rounded-lg border border-slate-900">
+                  <motion.div variants={featureChildVariants} className="flex gap-2.5 items-start text-[10px] text-slate-500 bg-slate-950/20 p-2.5 rounded-lg border border-slate-900">
                     <Award className="w-3.5 h-3.5 text-violet-400 shrink-0 mt-0.5" />
-                    <span>{t.feat3Tip}</span>
-                  </div>
+                    <div className="flex flex-col">
+                      <span>{translations.en.feat3Tip}</span>
+                      <span className="text-slate-500/85 text-[9px] mt-0.5">{translations.my.feat3Tip}</span>
+                    </div>
+                  </motion.div>
                 </motion.div>
               )}
 
               {activeFeatureTab === 'schedule' && (
                 <motion.div 
                   key="schedule"
-                  initial={{ opacity: 0, x: 15 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -15 }}
-                  transition={{ duration: 0.2 }}
+                  variants={featurePanelVariants}
+                  initial="hidden"
+                  animate="visible"
+                  exit="exit"
                   className="flex flex-col gap-4"
                 >
-                  <div className="flex flex-col gap-1">
+                  <motion.div variants={featureChildVariants} className="flex flex-col gap-1.5">
                     <span className="text-[9px] font-mono text-cyan-400 uppercase tracking-widest font-black">MODULE 04</span>
-                    <h3 className="text-white font-sans font-black text-lg">
-                      {t.feat4Title}
-                    </h3>
-                    <p className="text-slate-400 text-xs leading-relaxed mt-1">
-                      {t.feat4Desc}
-                    </p>
-                  </div>
+                    <div className="flex flex-col gap-0.5">
+                      <h3 className="text-white font-sans font-black text-sm sm:text-lg">
+                        {translations.en.feat4Title}
+                      </h3>
+                      <p className="text-[11px] sm:text-xs text-cyan-400 font-bold tracking-wide leading-tight">
+                        {translations.my.feat4Title}
+                      </p>
+                    </div>
+                    <div className="flex flex-col gap-1 mt-2">
+                      <p className="text-slate-300 text-xs leading-relaxed font-sans">
+                        {translations.en.feat4Desc}
+                      </p>
+                      <p className="text-slate-400/90 text-[11px] leading-relaxed font-sans">
+                        {translations.my.feat4Desc}
+                      </p>
+                    </div>
+                  </motion.div>
 
-                  <div className="bg-slate-950/60 p-4 rounded-xl border border-slate-900 flex flex-col gap-3 font-sans text-xs">
+                  <motion.div variants={featureChildVariants} className="bg-slate-950/60 p-3 sm:p-4 rounded-xl border border-slate-900 flex flex-col gap-3.5 font-sans text-xs">
                     <div className="flex items-start gap-3">
                       <div className="p-1.5 rounded-md bg-emerald-500/10 text-emerald-400 mt-0.5 shrink-0">
                         <Clock className="w-4 h-4" />
                       </div>
-                      <div>
-                        <h5 className="text-white font-bold text-[11px]">{t.feat4OwlTitle}</h5>
-                        <p className="text-slate-400 text-[10px] leading-relaxed mt-0.5">{t.feat4OwlDesc}</p>
+                      <div className="flex flex-col gap-0.5">
+                        <div className="flex flex-wrap items-baseline gap-1.5">
+                          <h5 className="text-white font-bold text-[11px]">{translations.en.feat4OwlTitle}</h5>
+                          <span className="text-[10px] text-emerald-400 font-semibold font-sans">({translations.my.feat4OwlTitle})</span>
+                        </div>
+                        <p className="text-slate-400 text-[10px] leading-normal mt-0.5">{translations.en.feat4OwlDesc}</p>
+                        <p className="text-slate-500 text-[9.5px] leading-normal">{translations.my.feat4OwlDesc}</p>
                       </div>
                     </div>
                     
-                    <div className="flex items-start gap-3 border-t border-slate-900 pt-2.5">
+                    <div className="flex items-start gap-3 border-t border-slate-900/60 pt-3">
                       <div className="p-1.5 rounded-md bg-cyan-500/10 text-cyan-400 mt-0.5 shrink-0">
                         <Shield className="w-4 h-4" />
                       </div>
-                      <div>
-                        <h5 className="text-white font-bold text-[11px]">{t.feat4WeekendTitle}</h5>
-                        <p className="text-slate-400 text-[10px] leading-relaxed mt-0.5">{t.feat4WeekendDesc}</p>
+                      <div className="flex flex-col gap-0.5">
+                        <div className="flex flex-wrap items-baseline gap-1.5">
+                          <h5 className="text-white font-bold text-[11px]">{translations.en.feat4WeekendTitle}</h5>
+                          <span className="text-[10px] text-cyan-400 font-semibold font-sans">({translations.my.feat4WeekendTitle})</span>
+                        </div>
+                        <p className="text-slate-400 text-[10px] leading-normal mt-0.5">{translations.en.feat4WeekendDesc}</p>
+                        <p className="text-slate-500 text-[9.5px] leading-normal">{translations.my.feat4WeekendDesc}</p>
                       </div>
                     </div>
 
-                    <div className="flex items-start gap-3 border-t border-slate-900 pt-2.5">
+                    <div className="flex items-start gap-3 border-t border-slate-900/60 pt-3">
                       <div className="p-1.5 rounded-md bg-amber-500/10 text-amber-400 mt-0.5 shrink-0">
                         <Calendar className="w-4 h-4" />
                       </div>
-                      <div>
-                        <h5 className="text-white font-bold text-[11px]">{t.feat4SelectiveTitle}</h5>
-                        <p className="text-slate-400 text-[10px] leading-relaxed mt-0.5">{t.feat4SelectiveDesc}</p>
+                      <div className="flex flex-col gap-0.5">
+                        <div className="flex flex-wrap items-baseline gap-1.5">
+                          <h5 className="text-white font-bold text-[11px]">{translations.en.feat4SelectiveTitle}</h5>
+                          <span className="text-[10px] text-amber-400 font-semibold font-sans">({translations.my.feat4SelectiveTitle})</span>
+                        </div>
+                        <p className="text-slate-400 text-[10px] leading-normal mt-0.5">{translations.en.feat4SelectiveDesc}</p>
+                        <p className="text-slate-500 text-[9.5px] leading-normal">{translations.my.feat4SelectiveDesc}</p>
                       </div>
                     </div>
-                  </div>
+                  </motion.div>
                 </motion.div>
               )}
             </AnimatePresence>
 
             <div className="border-t border-slate-800/40 pt-4 mt-2 flex justify-between items-center text-[10px] text-slate-500">
-              <span>Bet On Me - Built for absolute self-accountability.</span>
+              <span>Bet On Me Terminal - Professional Consistency & Discipline System</span>
               <span className="font-mono text-emerald-400 font-bold">Status: Terminal Ready</span>
             </div>
           </div>
@@ -727,7 +1029,13 @@ export default function IntroPage({ onClose, currentPoints }: IntroPageProps) {
           </p>
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
+        <motion.div 
+          variants={progressionContainerVariants}
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, margin: "-60px" }}
+          className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4"
+        >
           {allTiers.map((tier, idx) => {
             const isUserTier = currentPoints >= tier.prevPoints && currentPoints < tier.nextPoints;
             const badgeLabel = badgeNameMap[tier.name] || tier.name;
@@ -735,11 +1043,20 @@ export default function IntroPage({ onClose, currentPoints }: IntroPageProps) {
             return (
               <motion.div 
                 key={tier.name}
-                whileHover={{ y: -4 }}
+                variants={progressionItemVariants}
+                whileHover={{ 
+                  y: -8,
+                  scale: 1.03,
+                  borderColor: isUserTier ? "rgba(245,158,11,0.6)" : "rgba(16,185,129,0.35)",
+                  boxShadow: isUserTier 
+                    ? "0 15px 30px -10px rgba(245,158,11,0.25)"
+                    : "0 15px 30px -10px rgba(16,185,129,0.08)"
+                }}
+                transition={{ type: "spring", stiffness: 260, damping: 20 }}
                 className={`p-4 rounded-2xl border flex flex-col justify-between text-center gap-4 transition-all relative ${
                   isUserTier 
-                    ? 'border-amber-400 bg-amber-500/10 shadow-[0_0_20px_rgba(245,158,11,0.2)] ring-1 ring-amber-500/30 scale-102 z-10'
-                    : 'border-slate-900 bg-slate-900/10 hover:border-slate-800 hover:bg-slate-900/20'
+                    ? 'border-amber-400 bg-amber-500/10 shadow-[0_0_20px_rgba(245,158,11,0.2)] ring-1 ring-amber-500/30 z-10'
+                    : 'border-slate-900 bg-slate-900/10 hover:border-slate-850 hover:bg-slate-900/20'
                 }`}
               >
                 <div className="flex flex-col items-center gap-2">
@@ -752,17 +1069,17 @@ export default function IntroPage({ onClose, currentPoints }: IntroPageProps) {
                   </span>
                 </div>
 
-                <div className="flex flex-col gap-1 border-t border-slate-800/40 pt-2.5 text-[9px] font-mono">
-                  <div>
-                    <span className="text-slate-500 block uppercase text-[8px] font-bold tracking-wider">Penalty</span>
+                <div className="flex flex-col gap-1 border-t border-slate-800/40 pt-2.5 text-[9px] font-mono text-left">
+                  <div className="flex justify-between items-center">
+                    <span className="text-slate-500 uppercase text-[8px] font-bold tracking-wider">Penalty</span>
                     <span className="text-slate-300 font-extrabold">{tier.multiplier * 100}%</span>
                   </div>
-                  <div className="mt-1.5">
-                    <span className="text-slate-500 block uppercase text-[8px] font-bold tracking-wider">Max Bet</span>
+                  <div className="flex justify-between items-center mt-1.5">
+                    <span className="text-slate-500 uppercase text-[8px] font-bold tracking-wider">Max Bet</span>
                     <span className="text-amber-400 font-extrabold">{tier.maxBet} PTS</span>
                   </div>
-                  <div className="mt-1.5">
-                    <span className="text-slate-500 block uppercase text-[8px] font-bold tracking-wider">Leverage</span>
+                  <div className="flex justify-between items-center mt-1.5">
+                    <span className="text-slate-500 uppercase text-[8px] font-bold tracking-wider">Leverage</span>
                     <span className="text-emerald-400 font-extrabold">{tier.maxLeverage}x</span>
                   </div>
                 </div>
@@ -777,7 +1094,7 @@ export default function IntroPage({ onClose, currentPoints }: IntroPageProps) {
               </motion.div>
             );
           })}
-        </div>
+        </motion.div>
       </section>
 
       {/* ROADMAP / HOW TO START ROAD */}
@@ -792,7 +1109,13 @@ export default function IntroPage({ onClose, currentPoints }: IntroPageProps) {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-left">
+        <motion.div 
+          variants={roadmapContainerVariants}
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, margin: "-60px" }}
+          className="grid grid-cols-1 md:grid-cols-4 gap-4 text-left"
+        >
           {[
             { step: '01', title: t.step1Title, desc: t.step1Desc },
             { step: '02', title: t.step2Title, desc: t.step2Desc },
@@ -801,8 +1124,15 @@ export default function IntroPage({ onClose, currentPoints }: IntroPageProps) {
           ].map((r, i) => (
             <motion.div 
               key={r.step} 
-              whileHover={{ y: -2 }}
-              className="p-4 bg-slate-900/20 border border-slate-900 rounded-xl flex flex-col gap-2 relative overflow-hidden"
+              variants={roadmapItemVariants}
+              whileHover={{ 
+                y: -4, 
+                scale: 1.02, 
+                borderColor: "rgba(16, 185, 129, 0.3)",
+                boxShadow: "0 10px 20px -10px rgba(16, 185, 129, 0.05)"
+              }}
+              transition={{ type: "spring", stiffness: 200, damping: 18 }}
+              className="p-4 bg-slate-900/20 border border-slate-900 rounded-xl flex flex-col gap-2 relative overflow-hidden cursor-pointer"
             >
               <span className="absolute -top-3.5 -left-1 text-3xl font-black font-mono text-slate-800/10 select-none">{r.step}</span>
               <h4 className="text-white text-xs font-black uppercase tracking-wider font-sans mt-1">
@@ -813,13 +1143,19 @@ export default function IntroPage({ onClose, currentPoints }: IntroPageProps) {
               </p>
             </motion.div>
           ))}
-        </div>
+        </motion.div>
 
-        <div className="bg-slate-900/40 border border-slate-850 p-6 rounded-2xl flex flex-col md:flex-row items-center justify-between gap-5 mt-4 text-left max-w-3xl mx-auto shadow-lg relative overflow-hidden">
+        <motion.div 
+          initial={{ opacity: 0, y: 30 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ type: "spring", stiffness: 140, damping: 18, delay: 0.1 }}
+          className="bg-slate-900/40 border border-slate-850 p-6 rounded-2xl flex flex-col md:flex-row items-center justify-between gap-5 mt-4 text-left max-w-3xl mx-auto shadow-lg relative overflow-hidden"
+        >
           <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-500/5 rounded-full blur-2xl pointer-events-none"></div>
           <div className="flex flex-col gap-1.5">
             <h4 className="text-white font-bold text-sm flex items-center gap-2">
-              <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+              <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 animate-bounce" />
               {t.readyTitle}
             </h4>
             <p className="text-slate-400 text-xs leading-relaxed max-w-md">
@@ -834,7 +1170,7 @@ export default function IntroPage({ onClose, currentPoints }: IntroPageProps) {
           >
             {t.startBtn}
           </motion.button>
-        </div>
+        </motion.div>
       </section>
 
       {/* FOOTER */}

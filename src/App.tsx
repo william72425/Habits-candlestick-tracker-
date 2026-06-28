@@ -11,6 +11,7 @@ import HabitManager from './components/HabitManager';
 import SuperLog from './components/SuperLog';
 import RewardsHub from './components/RewardsHub';
 import IntroPage from './components/IntroPage';
+import ReportHub from './components/ReportHub';
 
 // Icons
 import { 
@@ -33,7 +34,8 @@ import {
   AlertTriangle,
   Award,
   Clock,
-  Settings
+  Settings,
+  FileText
 } from 'lucide-react';
 
 const LOCAL_STORAGE_KEY = 'habit_candlestick_tracker_data';
@@ -74,7 +76,7 @@ const DEFAULT_TERMINAL_CONFIG: UserTerminalConfig = {
 
 export default function App() {
   const [habits, setHabits] = useState<Habit[]>([]);
-  const [activeTab, setActiveTab] = useState<'Dashboard' | 'Habits' | 'Ledger' | 'Rewards' | 'Settings'>('Dashboard');
+  const [activeTab, setActiveTab] = useState<'Dashboard' | 'Habits' | 'Rewards' | 'Ledger' | 'Report' | 'Settings'>('Dashboard');
   const [timeframe, setTimeframe] = useState<'Daily' | 'Weekly' | 'Monthly'>('Daily');
   const [config, setConfig] = useState<UserTerminalConfig>(DEFAULT_TERMINAL_CONFIG);
   const [appInitialized, setAppInitialized] = useState(false);
@@ -1519,6 +1521,17 @@ export default function App() {
           />
         )}
 
+        {/* TAB VIEW 5: WEEKLY PERFORMANCE AUDIT REPORT & ALERTS */}
+        {activeTab === 'Report' && (
+          <ReportHub 
+            habits={habits}
+            config={config}
+            dailyCandles={dailyCandles}
+            metrics={enrichedMetrics}
+            today={today}
+          />
+        )}
+
         {/* TAB VIEW 5: SYSTEM TERMINAL CONFIGURATION & SETTINGS */}
         {activeTab === 'Settings' && (
           <div className="flex flex-col gap-6 animate-fade-in">
@@ -2294,6 +2307,7 @@ export default function App() {
           { id: 'Dashboard', label: 'Overview', icon: LayoutDashboard },
           { id: 'Habits', label: 'Assets', icon: ListTodo },
           { id: 'Rewards', label: 'Rank & Prediction', icon: Award },
+          { id: 'Report', label: 'Audits', icon: FileText },
           { id: 'Ledger', label: 'Ledger', icon: History },
           { id: 'Settings', label: 'Settings', icon: Settings }
         ].map((tab) => {
