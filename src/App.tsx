@@ -92,7 +92,11 @@ export default function App() {
   useEffect(() => {
     const checkPath = () => {
       const path = window.location.pathname.toLowerCase().replace(/\/$/, "");
-      if (path === '/intropage') {
+      const hash = window.location.hash.toLowerCase();
+      const params = new URLSearchParams(window.location.search);
+      const isIntro = path === '/intropage' || hash === '#/intropage' || params.get('page') === 'intropage' || params.get('route') === 'intropage';
+      
+      if (isIntro) {
         setShowIntroOverlay(true);
       }
     };
@@ -100,8 +104,10 @@ export default function App() {
     checkPath();
     
     window.addEventListener('popstate', checkPath);
+    window.addEventListener('hashchange', checkPath);
     return () => {
       window.removeEventListener('popstate', checkPath);
+      window.removeEventListener('hashchange', checkPath);
     };
   }, []);
 
@@ -2320,7 +2326,10 @@ export default function App() {
         <IntroPage 
           onClose={() => {
             setShowIntroOverlay(false);
-            if (window.location.pathname.toLowerCase().replace(/\/$/, "") === '/intropage') {
+            const path = window.location.pathname.toLowerCase().replace(/\/$/, "");
+            const hash = window.location.hash.toLowerCase();
+            const params = new URLSearchParams(window.location.search);
+            if (path === '/intropage' || hash === '#/intropage' || params.get('page') === 'intropage' || params.get('route') === 'intropage') {
               window.history.pushState({}, '', '/');
             }
           }} 
