@@ -65,27 +65,27 @@ export default function AuthPage({
     if (code === "auth/invalid-credential" || code === "auth/wrong-password" || code === "auth/user-not-found") {
       setErrorMessage({
         en: "Invalid email or password. Please verify your credentials.",
-        my: "á€¡á€®á€¸á€™á€±á€¸á€œá€º á€žá€­á€¯á€·á€™á€Ÿá€¯á€á€º á€œá€»á€¾á€­á€¯á€·á€á€¾á€€á€ºá€”á€¶á€•á€«á€á€º á€™á€¾á€¬á€¸á€šá€½á€„á€ºá€¸á€”á€±á€•á€«á€žá€Šá€ºá‹ á€•á€¼á€”á€ºá€œá€Šá€ºá€…á€…á€ºá€†á€±á€¸á€•á€±á€¸á€•á€«á‹"
+        my: "အီးမေးလ် သို့မဟုတ် လျှို့ဝှက်နံပါတ် မှားယွင်းနေပါသည်။ ပြန်လည်စစ်ဆေးပေးပါ။"
       });
     } else if (code === "auth/email-already-in-use") {
       setErrorMessage({
         en: "This email is already associated with an active terminal.",
-        my: "á€¤á€¡á€®á€¸á€™á€±á€¸á€œá€ºá€–á€¼á€„á€·á€º á€¡á€€á€±á€¬á€„á€·á€ºá€–á€½á€„á€·á€ºá€‘á€¬á€¸á€•á€¼á€®á€¸ á€–á€¼á€…á€ºá€•á€«á€žá€Šá€ºá‹"
+        my: "ဤအီးမေးလ်ဖြင့် အကောင့်ဖွင့်ထားပြီး ဖြစ်ပါသည်။"
       });
     } else if (code === "auth/invalid-email") {
       setErrorMessage({
         en: "The email format is invalid.",
-        my: "á€¡á€®á€¸á€™á€±á€¸á€œá€º á€•á€¯á€¶á€…á€¶ á€™á€¾á€¬á€¸á€šá€½á€„á€ºá€¸á€”á€±á€•á€«á€žá€Šá€ºá‹"
+        my: "အီးမေးလ် ပုံစံ မှားယွင်းနေပါသည်။"
       });
     } else if (code === "auth/weak-password") {
       setErrorMessage({
         en: "Password must be at least 6 characters.",
-        my: "á€œá€»á€¾á€­á€¯á€·á€á€¾á€€á€ºá€”á€¶á€•á€«á€á€ºá€žá€Šá€º á€¡á€”á€Šá€ºá€¸á€†á€¯á€¶á€¸ á€…á€¬á€œá€¯á€¶á€¸ á† á€œá€¯á€¶á€¸ á€–á€¼á€…á€ºá€›á€•á€«á€™á€Šá€ºá‹"
+        my: "လျှို့ဝှက်နံပါတ်သည် အနည်းဆုံး စာလုံး ၆ လုံး ဖြစ်ရပါမည်။"
       });
     } else {
       setErrorMessage({
         en: err.message || "An unexpected network error occurred.",
-        my: "á€€á€½á€”á€ºá€›á€€á€ºá€á€»á€­á€á€ºá€†á€€á€ºá€™á€¾á€¯ á€¡á€á€€á€ºá€¡á€á€²á€›á€¾á€­á€”á€±á€•á€«á€žá€Šá€ºá‹ á€•á€¼á€”á€ºá€œá€Šá€ºá€€á€¼á€­á€¯á€¸á€…á€¬á€¸á€•á€±á€¸á€•á€«á‹"
+        my: "ကွန်ရက်ချိတ်ဆက်မှု အခက်အခဲရှိနေပါသည်။ ပြန်လည်ကြိုးစားပေးပါ။"
       });
     }
   };
@@ -147,7 +147,7 @@ export default function AuthPage({
       if (err.code === "auth/popup-closed-by-user") {
         setErrorMessage({
           en: "Authentication window was closed before completion.",
-          my: "á€¡á€€á€±á€¬á€„á€·á€ºá€á€„á€ºá€›á€”á€º á€–á€½á€„á€·á€ºá€‘á€¬á€¸á€žá€±á€¬ Window á€•á€­á€á€ºá€žá€½á€¬á€¸á€á€²á€·á€žá€Šá€ºá‹"
+          my: "အကောင့်ဝင်ရန် ဖွင့်ထားသော Window ပိတ်သွားခဲ့သည်။"
         });
       } else {
         setErrorMessage({ en: t.googleError, my: t.googleError });
@@ -184,7 +184,7 @@ export default function AuthPage({
           className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-900 hover:bg-slate-850 border border-slate-800 hover:border-slate-700 text-slate-400 hover:text-slate-200 text-xs font-semibold rounded-xl cursor-pointer transition-all select-none"
         >
           <Globe className="w-4 h-4 text-emerald-400" />
-          <span>{lang === 'en' ? 'á€™á€¼á€”á€ºá€™á€¬' : 'English'}</span>
+          <span>{lang === 'en' ? 'မြန်မာ' : 'English'}</span>
         </button>
       </div>
 
@@ -294,7 +294,7 @@ export default function AuthPage({
               disabled={loading}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢"
+              placeholder="••••••••"
               className="w-full bg-slate-950/80 border border-slate-800 focus:border-emerald-500 rounded-xl px-4 py-3 text-xs text-white focus:outline-none focus:ring-1 focus:ring-emerald-500 transition-all font-mono"
             />
           </div>
@@ -312,7 +312,7 @@ export default function AuthPage({
                 disabled={loading}
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
-                placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢"
+                placeholder="••••••••"
                 className="w-full bg-slate-950/80 border border-slate-800 focus:border-emerald-500 rounded-xl px-4 py-3 text-xs text-white focus:outline-none focus:ring-1 focus:ring-emerald-500 transition-all font-mono"
               />
             </div>
