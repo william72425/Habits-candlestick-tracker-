@@ -17,14 +17,14 @@ import {
 } from 'firebase/firestore';
 import { Habit, UserTerminalConfig } from '../types';
 
-// Read configuration from system generated parameters
+// Read configuration from environment variables or fallback to system generated parameters
 const firebaseConfig = {
-  apiKey: "AIzaSyDKzf3bri2K6njgK1o64V1Y3mUfafkCV9s",
-  authDomain: "gen-lang-client-0786967448.firebaseapp.com",
-  projectId: "gen-lang-client-0786967448",
-  storageBucket: "gen-lang-client-0786967448.firebasestorage.app",
-  messagingSenderId: "584507499628",
-  appId: "1:584507499628:web:59d854cb6ab7181e7b2449"
+  apiKey: (import.meta as any).env.VITE_FIREBASE_API_KEY || "AIzaSyDKzf3bri2K6njgK1o64V1Y3mUfafkCV9s",
+  authDomain: (import.meta as any).env.VITE_FIREBASE_AUTH_DOMAIN || "gen-lang-client-0786967448.firebaseapp.com",
+  projectId: (import.meta as any).env.VITE_FIREBASE_PROJECT_ID || "gen-lang-client-0786967448",
+  storageBucket: (import.meta as any).env.VITE_FIREBASE_STORAGE_BUCKET || "gen-lang-client-0786967448.firebasestorage.app",
+  messagingSenderId: (import.meta as any).env.VITE_FIREBASE_MESSAGING_SENDER_ID || "584507499628",
+  appId: (import.meta as any).env.VITE_FIREBASE_APP_ID || "1:584507499628:web:59d854cb6ab7181e7b2449"
 };
 
 // Initialize Firebase App
@@ -34,8 +34,9 @@ const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const googleProvider = new GoogleAuthProvider();
 
-// Initialize Firestore with custom Database ID
-export const db = getFirestore(app, "ai-studio-habitcandlestick-e45421b2-ee56-4ecb-8a52-abe0225caf43");
+// Initialize Firestore with custom Database ID or fallback
+const databaseId = (import.meta as any).env.VITE_FIREBASE_DATABASE_ID || "ai-studio-habitcandlestick-e45421b2-ee56-4ecb-8a52-abe0225caf43";
+export const db = getFirestore(app, databaseId === "(default)" ? undefined : databaseId);
 
 /**
  * Saves habit records and configurations of the authenticated user to Firestore.
