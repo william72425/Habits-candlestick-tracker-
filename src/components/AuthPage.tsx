@@ -2,9 +2,7 @@ import React, { useState } from 'react';
 import { 
   auth, 
   googleProvider, 
-  signInWithPopup,
-  signInWithRedirect,
-  getRedirectResult
+  signInWithPopup
 } from '../utils/firebase';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
@@ -57,85 +55,35 @@ export default function AuthPage({
     }
   }, []);
 
-  // Handle redirect authentication results on component mount (critical for top-level Vercel flow)
-  React.useEffect(() => {
-    let active = true;
-    const checkRedirectResult = async () => {
-      // Don't check for redirects inside iframe since we don't use redirect there
-      if (isIframe) return;
-      
-      try {
-        setLoading(true);
-        const result = await getRedirectResult(auth);
-        if (result && active) {
-          setSuccessMessage({ 
-            en: t.successSignIn || "Terminal authenticated successfully!", 
-            my: t.successSignIn || "အကောင့်ဝင်ရောက်မှု အောင်မြင်ပါသည်။" 
-          });
-          setTimeout(() => {
-            if (active) onSuccess();
-          }, 1250);
-        }
-      } catch (err: any) {
-        console.error("Firebase Redirect auth resolution error:", err);
-        // Ignore cases where there's no state or it was cancelled
-        if (active && err.code !== "auth/no-current-user") {
-          setErrorMessage({
-            en: `Google Authentication failed: ${err.message || "Please try again."}`,
-            my: `Google အကောင့်ဝင်ရန် ကြိုးစားမှု မအောင်မြင်ပါ- ${err.message || "ထပ်မံကြိုးစားပေးပါ။"}`
-          });
-        }
-      } finally {
-        if (active) setLoading(false);
-      }
-    };
-
-    checkRedirectResult();
-
-    return () => {
-      active = false;
-    };
-  }, [isIframe, onSuccess, t.successSignIn]);
-
   // Google Provider Authentication
   const handleGoogleAuth = async () => {
     setErrorMessage(null);
     setSuccessMessage(null);
     setLoading(true);
 
-    if (isIframe) {
-      // FALLBACK: Inside iframe (AI Studio Preview), use signInWithPopup
-      try {
-        await signInWithPopup(auth, googleProvider);
-        setSuccessMessage({ en: t.successSignIn, my: t.successSignIn });
-        setTimeout(() => {
-          onSuccess();
-        }, 1200);
-      } catch (err: any) {
-        if (err.code === "auth/popup-closed-by-user") {
-          setErrorMessage({
-            en: "Authentication window was closed before completion.",
-            my: "အကောင့်ဝင်ရန် ဖွင့်ထားသော Window ပိတ်သွားခဲ့သည်။"
-          });
-        } else {
-          setErrorMessage({ en: t.googleError, my: t.googleError });
-          console.error(err);
-        }
-      } finally {
-        setLoading(false);
-      }
-    } else {
-      // MAIN FLOW: On Vercel (outside iframe), use high-stability signInWithRedirect
-      try {
-        await signInWithRedirect(auth, googleProvider);
-      } catch (err: any) {
+    try {
+      await signInWithPopup(auth, googleProvider);
+      setSuccessMessage({ en: t.successSignIn, my: t.successSignIn });
+      setTimeout(() => {
+        onSuccess();
+      }, 1200);
+    } catch (err: any) {
+      if (err.code === "auth/popup-closed-by-user") {
         setErrorMessage({
-          en: `Failed to initiate Google sign-in: ${err.message || "Please retry."}`,
-          my: `Google Sign-in စတင်ရန် မအောင်မြင်ပါ- ${err.message || "ထပ်မံကြိုးစားပါ။"}`
+          en: "Authentication window was closed before completion.",
+          my: "အကောင့်ဝင်ရန် ဖွင့်ထားသော Window ပိတ်သွားခဲ့သည်။"
         });
-        setLoading(false);
+      } else if (err.code === "auth/popup-blocked") {
+        setErrorMessage({
+          en: "The sign-in popup was blocked by your browser. Please allow popups or use Guest Mode.",
+          my: "အကောင့်ဝင်ရန် Popup ကို browser က ပိတ်ထားပါသည်။ Popup browser settings တွင် ခွင့်ပြုပေးပါ သို့မဟုတ် Guest Mode သုံးပါ။"
+        });
+      } else {
+        setErrorMessage({ en: t.googleError, my: t.googleError });
         console.error(err);
       }
+    } finally {
+      setLoading(false);
     }
   };
 

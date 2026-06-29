@@ -6,7 +6,7 @@ import { calculateDailyCandles, aggregateCandles, calculateMetrics, injectIndica
 import { APP_LOCALIZATION } from './utils/localization';
 
 // Firebase Integrations
-import { auth, signOut, onAuthStateChanged, User, saveUserData, loadUserData, getRedirectResult } from './utils/firebase';
+import { auth, signOut, onAuthStateChanged, User, saveUserData, loadUserData } from './utils/firebase';
 
 // Components
 import DashboardOverview from './components/DashboardOverview';
@@ -98,41 +98,7 @@ export default function App() {
   // Authentication State Variables
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [authLoading, setAuthLoading] = useState<boolean>(true);
-  const [checkingRedirect, setCheckingRedirect] = useState<boolean>(() => {
-    try {
-      const isIframe = window.self !== window.top;
-      return !isIframe;
-    } catch (e) {
-      return true;
-    }
-  });
   const [isGuestMode, setIsGuestMode] = useState<boolean>(false);
-
-  // Call getRedirectResult at the root level so that Vercel redirects are always resolved
-  useEffect(() => {
-    const handleRedirect = async () => {
-      try {
-        await getRedirectResult(auth);
-      } catch (err) {
-        console.error("Root level getRedirectResult error:", err);
-      } finally {
-        setCheckingRedirect(false);
-      }
-    };
-    
-    let isIframe = false;
-    try {
-      isIframe = window.self !== window.top;
-    } catch (e) {
-      isIframe = true;
-    }
-
-    if (!isIframe) {
-      handleRedirect();
-    } else {
-      setCheckingRedirect(false);
-    }
-  }, []);
 
   // Future Betting States
   const [betWager, setBetWager] = useState<number>(100);
@@ -1050,7 +1016,7 @@ export default function App() {
     }
   };
 
-  if (authLoading || checkingRedirect) {
+  if (authLoading) {
     return (
       <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center text-slate-400 antialiased font-mono gap-4">
         <RefreshCw className="w-8 h-8 text-emerald-400 animate-spin" />
