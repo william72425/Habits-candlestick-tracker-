@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Habit, Candle, DashboardMetrics, UserTerminalConfig, PaperTradePosition } from './types';
 import { getMockHabits } from './utils/mockData';
 import { getTodayDateString, addDays, getDatesInRange, getAdjustedTodayDateString, formatDateLabel } from './utils/dateHelpers';
-import { calculateDailyCandles, aggregateCandles, calculateMetrics, injectIndicators, getHabitPoints, getTierInfo, getWeeklyConsistency, getNextTierThreshold, auditPromotionState } from './utils/financeEngine';
+import { calculateDailyCandles, aggregateCandles, calculateMetrics, injectIndicators, getHabitPoints, getTierInfo, getWeeklyConsistency, getNextTierThreshold, auditPromotionState, isHabitCompletedOnDate, getHabitProgressPercent } from './utils/financeEngine';
 import { APP_LOCALIZATION } from './utils/localization';
 
 // Firebase Integrations
@@ -553,7 +553,10 @@ export default function App() {
     penalty: number | undefined,
     riskLevel: 'Low' | 'Medium' | 'High',
     isActiveOnWeekends: boolean,
-    selectiveDays: number[] | undefined
+    selectiveDays: number[] | undefined,
+    habitType?: 'binary' | 'quantitative',
+    targetValue?: number,
+    unit?: string
   ) => {
     const newHabit: Habit = {
       id: `habit_${Date.now()}`,
@@ -569,7 +572,10 @@ export default function App() {
       penalty,
       riskLevel,
       isActiveOnWeekends,
-      selectiveDays
+      selectiveDays,
+      habitType,
+      targetValue,
+      unit
     };
     setHabits(prev => [...prev, newHabit]);
   };
@@ -596,7 +602,7 @@ export default function App() {
 
       return prev.map((habit) => {
         if (habit.id === id) {
-          const currentVal = habit.history[date] === true;
+          const currentVal = isHabitCompletedOnDate(habit, date);
           const nextVal = !currentVal;
           
           // Dynamic points calculation
@@ -612,25 +618,20 @@ export default function App() {
 
             const promo = config.promotion || { status: 'NONE' as const, targetTier: '', targetPoints: 0, dailyPerformance: {} };
             let finalPointsToAward = pointsToAward;
-            let showCappedMessage = false;
             let showThresholdTrigger = false;
             let newPromoState = { ...promo };
 
-            if (promo.status === 'ELIGIBLE' || promo.status === 'SCHEDULED' || promo.status === 'ACTIVE') {
-              finalPointsToAward = 0;
-              showCappedMessage = true;
-            } else {
-              const nextThreshold = getNextTierThreshold(config.totalPoints);
-              if (nextThreshold && (config.totalPoints + pointsToAward) >= nextThreshold.points) {
-                finalPointsToAward = nextThreshold.points - 1 - config.totalPoints;
-                showThresholdTrigger = true;
-                newPromoState = {
-                  status: 'ELIGIBLE' as const,
-                  targetTier: nextThreshold.name,
-                  targetPoints: nextThreshold.points,
-                  dailyPerformance: {}
-                };
-              }
+            // Uncapped Point Earnings: We no longer limit points or freeze them in any state!
+            // We only check if the user crossed a new threshold to enable a voluntary Promotion Trial.
+            const nextThreshold = getNextTierThreshold(config.totalPoints);
+            if (nextThreshold && (config.totalPoints + pointsToAward) >= nextThreshold.points && (promo.status === 'NONE' || !promo.status)) {
+              showThresholdTrigger = true;
+              newPromoState = {
+                status: 'ELIGIBLE' as const,
+                targetTier: nextThreshold.name,
+                targetPoints: nextThreshold.points,
+                dailyPerformance: {}
+              };
             }
 
             let rewardDescription = `Completed: ${habit.name} (+${finalPointsToAward} pts)`;
@@ -640,10 +641,8 @@ export default function App() {
             if (isCreatedToday) {
               rewardDescription += ` [50% New-Habit Warm-Up]`;
             }
-            if (showCappedMessage) {
-              rewardDescription = `Completed: ${habit.name} (+0 pts) [Points Locked - Promotion Trials Pending]`;
-            } else if (showThresholdTrigger) {
-              rewardDescription = `Completed: ${habit.name} (+${finalPointsToAward} pts) - Reached ${newPromoState.targetTier} Threshold! Activate Promotion Trials to level up!`;
+            if (showThresholdTrigger) {
+              rewardDescription = `Completed: ${habit.name} (+${finalPointsToAward} pts) - Reached ${newPromoState.targetTier} Threshold! Activate Promotion Trials for extra bonus rewards!`;
             }
 
             setConfig(prevConfig => ({
@@ -710,11 +709,133 @@ export default function App() {
             }));
           }
 
+          const newHistoryVal = habit.habitType === 'quantitative'
+            ? (nextVal ? (habit.targetValue ?? 1) : 0)
+            : nextVal;
+
           return {
             ...habit,
             history: {
               ...habit.history,
-              [date]: nextVal
+              [date]: newHistoryVal
+            }
+          };
+        }
+        return habit;
+      });
+    });
+  };
+
+  const handleUpdateHabitValue = (id: string, date: string, value: number) => {
+    setHabits(prev => {
+      // 7-day retrospective consistency
+      const weeklyConsistency = getWeeklyConsistency(prev, date);
+
+      return prev.map((habit) => {
+        if (habit.id === id) {
+          const target = habit.targetValue ?? 1;
+          const oldVal = habit.history[date];
+          const wasCompleted = typeof oldVal === 'number' ? oldVal >= target : oldVal === true;
+          const isCompletedNow = value >= target;
+
+          // Points update only when completion state changes!
+          if (wasCompleted !== isCompletedNow) {
+            const points = getHabitPoints(habit);
+            const isCreatedToday = habit.createdDate === date;
+            const basePointsToAward = isCreatedToday ? Math.round(points.reward * 0.5) : points.reward;
+
+            if (isCompletedNow) {
+              // Became completed! Award points
+              const isBonusStreak = weeklyConsistency >= 90;
+              const multiplier = isBonusStreak ? 1.2 : 1.0;
+              const pointsToAward = Math.round(basePointsToAward * multiplier);
+
+              const promo = config.promotion || { status: 'NONE' as const, targetTier: '', targetPoints: 0, dailyPerformance: {} };
+              let finalPointsToAward = pointsToAward;
+              let showThresholdTrigger = false;
+              let newPromoState = { ...promo };
+
+              // Uncapped Point Earnings: We no longer limit points or freeze them in any state!
+              // We only check if the user crossed a new threshold to enable a voluntary Promotion Trial.
+              const nextThreshold = getNextTierThreshold(config.totalPoints);
+              if (nextThreshold && (config.totalPoints + pointsToAward) >= nextThreshold.points && (promo.status === 'NONE' || !promo.status)) {
+                showThresholdTrigger = true;
+                newPromoState = {
+                  status: 'ELIGIBLE' as const,
+                  targetTier: nextThreshold.name,
+                  targetPoints: nextThreshold.points,
+                  dailyPerformance: {}
+                };
+              }
+
+              let rewardDescription = `Completed Quantitative Target: ${habit.name} (${value}/${target} ${habit.unit ?? ''}) (+${finalPointsToAward} pts)`;
+              if (isBonusStreak) rewardDescription += ` [1.2x Consistency Bonus streak]`;
+              if (isCreatedToday) rewardDescription += ` [50% New-Habit Warm-Up]`;
+
+              setConfig(prevConfig => ({
+                ...prevConfig,
+                totalPoints: prevConfig.totalPoints + finalPointsToAward,
+                promotion: newPromoState,
+                pointsHistory: [
+                  {
+                    id: `earn_${Date.now()}_${habit.id}`,
+                    date: date,
+                    type: 'HABIT_COMPLETE',
+                    description: rewardDescription,
+                    points: finalPointsToAward
+                  },
+                  ...(prevConfig.pointsHistory || [])
+                ]
+              }));
+            } else {
+              // Was completed, now not completed (deduct points)
+              const matchedHistoryItem = (config.pointsHistory || [])
+                .find(item => item.date === date && item.id.includes(`_${habit.id}`));
+              
+              const isLossStreak = weeklyConsistency < 50;
+              const penaltyMultiplier = isLossStreak ? 1.5 : 1.0;
+              
+              let pointsToDeduct = matchedHistoryItem ? matchedHistoryItem.points : basePointsToAward;
+              if (isLossStreak) {
+                pointsToDeduct = Math.round(pointsToDeduct * penaltyMultiplier);
+              }
+
+              const proposedPoints = Math.max(0, config.totalPoints - pointsToDeduct);
+              const promo = config.promotion || { status: 'NONE' as const, targetTier: '', targetPoints: 0, dailyPerformance: {} };
+              let newPromoState = { ...promo };
+
+              if (promo.status === 'ELIGIBLE' && proposedPoints < (promo.targetPoints - 1)) {
+                newPromoState = {
+                  status: 'NONE' as const,
+                  targetTier: '',
+                  targetPoints: 0,
+                  dailyPerformance: {}
+                };
+              }
+
+              setConfig(prevConfig => ({
+                ...prevConfig,
+                totalPoints: proposedPoints,
+                promotion: newPromoState,
+                pointsHistory: [
+                  {
+                    id: `loss_${Date.now()}_${habit.id}`,
+                    date: date,
+                    type: 'HABIT_MISS',
+                    description: `Reduced Progress below Target: ${habit.name} (${value}/${target} ${habit.unit ?? ''}) (-${pointsToDeduct} pts)`,
+                    points: -pointsToDeduct
+                  },
+                  ...(prevConfig.pointsHistory || [])
+                ]
+              }));
+            }
+          }
+
+          return {
+            ...habit,
+            history: {
+              ...habit.history,
+              [date]: value
             }
           };
         }
@@ -792,21 +913,15 @@ export default function App() {
       let newPromoState = { ...promo };
 
       if (netImpact > 0) {
-        if (promo.status === 'ELIGIBLE' || promo.status === 'SCHEDULED' || promo.status === 'ACTIVE') {
-          finalTotalPoints = Math.min(config.totalPoints, promo.targetPoints - 1);
-        } else {
-          const nextThreshold = getNextTierThreshold(config.totalPoints);
-          if (nextThreshold && (config.totalPoints + netImpact) >= nextThreshold.points) {
-            finalTotalPoints = nextThreshold.points - 1;
-            newPromoState = {
-              status: 'ELIGIBLE' as const,
-              targetTier: nextThreshold.name,
-              targetPoints: nextThreshold.points,
-              dailyPerformance: {}
-            };
-          } else {
-            finalTotalPoints = config.totalPoints + netImpact;
-          }
+        finalTotalPoints = config.totalPoints + netImpact;
+        const nextThreshold = getNextTierThreshold(config.totalPoints);
+        if (nextThreshold && finalTotalPoints >= nextThreshold.points && (promo.status === 'NONE' || !promo.status)) {
+          newPromoState = {
+            status: 'ELIGIBLE' as const,
+            targetTier: nextThreshold.name,
+            targetPoints: nextThreshold.points,
+            dailyPerformance: {}
+          };
         }
       } else if (netImpact < 0) {
         finalTotalPoints = Math.max(0, config.totalPoints + netImpact);
@@ -1698,6 +1813,7 @@ export default function App() {
             onAddHabit={handleAddHabit}
             onDeleteHabit={handleDeleteHabit}
             onToggleHabit={handleToggleHabit}
+            onUpdateHabitValue={handleUpdateHabitValue}
           />
         )}
 
@@ -1708,6 +1824,8 @@ export default function App() {
             currentIndexPrice={currentIndexPrice}
             onPlacePrediction={handlePlacePrediction}
             habits={habits}
+            onUnlockLeaderboard={() => setConfig(prev => ({ ...prev, leaderboardUnlocked: true }))}
+            today={today}
           />
         )}
 

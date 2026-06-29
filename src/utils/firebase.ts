@@ -99,6 +99,25 @@ export function handleFirestoreError(error: unknown, operationType: OperationTyp
   throw new Error(JSON.stringify(errInfo));
 }
 
+function removeUndefined(obj: any): any {
+  if (obj === null || typeof obj !== 'object') {
+    return obj;
+  }
+  if (Array.isArray(obj)) {
+    return obj.map(item => removeUndefined(item));
+  }
+  const cleaned: any = {};
+  for (const key in obj) {
+    if (Object.prototype.hasOwnProperty.call(obj, key)) {
+      const val = obj[key];
+      if (val !== undefined) {
+        cleaned[key] = removeUndefined(val);
+      }
+    }
+  }
+  return cleaned;
+}
+
 /**
  * Saves habit records and configurations of the authenticated user to Firestore.
  */
@@ -106,9 +125,11 @@ export async function saveUserData(uid: string, habits: Habit[], config: UserTer
   const path = `users/${uid}`;
   try {
     const userDocRef = doc(db, 'users', uid);
+    const cleanedHabits = removeUndefined(habits);
+    const cleanedConfig = removeUndefined(config);
     await setDoc(userDocRef, {
-      habits,
-      config,
+      habits: cleanedHabits,
+      config: cleanedConfig,
       updatedAt: new Date().toISOString()
     }, { merge: true });
   } catch (error) {

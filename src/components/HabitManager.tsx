@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Habit, HabitCategory, HabitFrequency } from '../types';
 import { getTodayDateString, addDays, formatDateLabel, getDatesInRange } from '../utils/dateHelpers';
 import { Plus, Trash2, Calendar, Check, X, ShieldAlert, Award, Star, ListCollapse, Sliders, ToggleLeft, ToggleRight, Info } from 'lucide-react';
-import { getHabitPoints, isHabitActiveOnDate } from '../utils/financeEngine';
+import { getHabitPoints, isHabitActiveOnDate, isHabitCompletedOnDate, getHabitProgressPercent } from '../utils/financeEngine';
 import { motion, AnimatePresence } from 'motion/react';
 
 interface HabitManagerProps {
@@ -19,13 +19,17 @@ interface HabitManagerProps {
     penalty: number | undefined,
     riskLevel: 'Low' | 'Medium' | 'High',
     isActiveOnWeekends: boolean,
-    selectiveDays: number[] | undefined
+    selectiveDays: number[] | undefined,
+    habitType?: 'binary' | 'quantitative',
+    targetValue?: number,
+    unit?: string
   ) => void;
   onDeleteHabit: (id: string) => void;
   onToggleHabit: (id: string, date: string) => void;
+  onUpdateHabitValue?: (id: string, date: string, value: number) => void;
 }
 
-export default function HabitManager({ habits, todayStr, onAddHabit, onDeleteHabit, onToggleHabit }: HabitManagerProps) {
+export default function HabitManager({ habits, todayStr, onAddHabit, onDeleteHabit, onToggleHabit, onUpdateHabitValue }: HabitManagerProps) {
   // Setup selected tracking date. Default is Today.
   const [selectedDate, setSelectedDate] = useState<string>(todayStr);
 
@@ -52,6 +56,12 @@ export default function HabitManager({ habits, todayStr, onAddHabit, onDeleteHab
   
   const [newRiskLevel, setNewRiskLevel] = useState<'Low' | 'Medium' | 'High'>('Medium');
   const [newIsActiveOnWeekends, setNewIsActiveOnWeekends] = useState<boolean>(true);
+  
+  // Quantitative settings state
+  const [newHabitType, setNewHabitType] = useState<'binary' | 'quantitative'>('binary');
+  const [newTargetValue, setNewTargetValue] = useState<number>(3);
+  const [newUnit, setNewUnit] = useState<string>('litres');
+  
   const [error, setError] = useState('');
 
   // Submission & animation state
@@ -125,7 +135,10 @@ export default function HabitManager({ habits, todayStr, onAddHabit, onDeleteHab
       customPointOverride ? newPenalty : undefined,
       newRiskLevel,
       activeWeekends,
-      days
+      days,
+      newHabitType,
+      newHabitType === 'quantitative' ? newTargetValue : undefined,
+      newHabitType === 'quantitative' ? newUnit.trim() : undefined
     );
 
     // Trigger success state and animated reset
@@ -141,6 +154,9 @@ export default function HabitManager({ habits, todayStr, onAddHabit, onDeleteHab
       setNewPenalty(30);
       setNewRiskLevel('Medium');
       setNewIsActiveOnWeekends(true);
+      setNewHabitType('binary');
+      setNewTargetValue(3);
+      setNewUnit('litres');
       
       // Auto-dismiss success notification after 3.5s
       setTimeout(() => {
@@ -164,7 +180,7 @@ export default function HabitManager({ habits, todayStr, onAddHabit, onDeleteHab
     const dates = getDatesInRange(habit.createdDate, todayStr);
     const totalDays = dates.length;
     const completions = Object.keys(habit.history).filter(
-      date => date >= habit.createdDate && date <= todayStr && habit.history[date] === true
+      date => date >= habit.createdDate && date <= todayStr && isHabitCompletedOnDate(habit, date)
     ).length;
     const rate = totalDays === 0 ? 100 : (completions / totalDays) * 100;
     return { completions, totalDays, rate };
@@ -207,7 +223,7 @@ export default function HabitManager({ habits, todayStr, onAddHabit, onDeleteHab
                 const wasNotArchivedYet = !h.archived || !h.archivedDate || h.archivedDate > dateStr;
                 return wasCreated && wasNotArchivedYet && isHabitActiveOnDate(h, dateStr);
               });
-              const doneCount = activeOnDate.filter(h => h.history[dateStr] === true).length;
+              const doneCount = activeOnDate.filter(h => isHabitCompletedOnDate(h, dateStr)).length;
               const totalCount = activeOnDate.length;
               const isPerfectDay = totalCount > 0 && doneCount === totalCount;
               const hasCompletions = doneCount > 0;
@@ -261,7 +277,7 @@ export default function HabitManager({ habits, todayStr, onAddHabit, onDeleteHab
             <div className="text-right">
               <span className="text-slate-500 text-[10px] font-mono block">COMPLETED</span>
               <span className="font-mono text-xs text-slate-300 font-semibold">
-                {habits.filter(h => h.createdDate <= selectedDate && (!h.archived || !h.archivedDate || h.archivedDate > selectedDate) && isHabitActiveOnDate(h, selectedDate) && h.history[selectedDate] === true).length} / {habits.filter(h => h.createdDate <= selectedDate && (!h.archived || !h.archivedDate || h.archivedDate > selectedDate) && isHabitActiveOnDate(h, selectedDate)).length}
+                {habits.filter(h => h.createdDate <= selectedDate && (!h.archived || !h.archivedDate || h.archivedDate > selectedDate) && isHabitActiveOnDate(h, selectedDate) && isHabitCompletedOnDate(h, selectedDate)).length} / {habits.filter(h => h.createdDate <= selectedDate && (!h.archived || !h.archivedDate || h.archivedDate > selectedDate) && isHabitActiveOnDate(h, selectedDate)).length}
               </span>
             </div>
           </div>
@@ -280,7 +296,13 @@ export default function HabitManager({ habits, todayStr, onAddHabit, onDeleteHab
               habits
                 .filter(h => h.createdDate <= selectedDate && (!h.archived || !h.archivedDate || h.archivedDate > selectedDate))
                 .map((habit) => {
-                  const isChecked = habit.history[selectedDate] === true;
+                  const isChecked = isHabitCompletedOnDate(habit, selectedDate);
+                  const isQuantitative = habit.habitType === 'quantitative';
+                  const targetVal = habit.targetValue ?? 1;
+                  const currentRecorded = typeof habit.history[selectedDate] === 'number'
+                    ? (habit.history[selectedDate] as number)
+                    : (habit.history[selectedDate] === true ? targetVal : 0);
+                  const progressPercent = getHabitProgressPercent(habit, selectedDate);
                   const points = getHabitPoints(habit);
                   const isActiveToday = isHabitActiveOnDate(habit, selectedDate);
 
@@ -315,62 +337,144 @@ export default function HabitManager({ habits, todayStr, onAddHabit, onDeleteHab
                   return (
                     <div 
                       key={habit.id}
-                      onClick={() => onToggleHabit(habit.id, selectedDate)}
-                      className={`flex items-center justify-between p-3.5 rounded-xl border transition-all cursor-pointer select-none ${
+                      className={`flex flex-col gap-3 p-3.5 rounded-xl border transition-all select-none ${
                         isChecked 
                           ? 'bg-emerald-950/15 border-emerald-500/30 hover:border-emerald-500/50 shadow-[inset_0_1px_3px_rgba(16,185,129,0.05)]' 
                           : 'bg-slate-900/20 border-slate-800/50 hover:bg-slate-900/40 hover:border-slate-800'
                       }`}
                     >
-                      <div className="flex items-center gap-3">
-                        {/* Interactive custom checkbox */}
-                        <div className={`w-6 h-6 rounded-md flex items-center justify-center transition-all ${
-                          isChecked 
-                            ? 'bg-emerald-500 text-slate-950 shadow-[0_0_12px_rgba(16,185,129,0.3)]' 
-                            : 'border border-slate-700 text-transparent hover:border-slate-500'
-                        }`}>
-                          {isChecked ? <Check className="w-4 h-4 stroke-[3px]" /> : <Check className="w-3.5 h-3.5" />}
-                        </div>
-
-                        {/* Title & Category Tag */}
-                        <div className="flex flex-col gap-0.5">
-                          <span className={`font-sans text-sm font-medium transition-colors ${
-                            isChecked ? 'text-slate-400 line-through decoration-slate-600' : 'text-slate-200 font-bold'
+                      <div className="flex items-center justify-between">
+                        <div 
+                          className="flex items-center gap-3 cursor-pointer flex-1"
+                          onClick={() => onToggleHabit(habit.id, selectedDate)}
+                        >
+                          {/* Interactive custom checkbox */}
+                          <div className={`w-6 h-6 rounded-md flex items-center justify-center transition-all ${
+                            isChecked 
+                              ? 'bg-emerald-500 text-slate-950 shadow-[0_0_12px_rgba(16,185,129,0.3)]' 
+                              : 'border border-slate-700 text-transparent hover:border-slate-500'
                           }`}>
-                            {habit.name}
-                          </span>
-                          
-                          <div className="flex items-center gap-1.5 mt-0.5">
-                            <span className={`px-1.5 py-0.5 rounded text-[9px] font-medium border ${getCategoryColor(habit.category)}`}>
-                              {habit.category}
+                            {isChecked ? <Check className="w-4 h-4 stroke-[3px]" /> : <Check className="w-3.5 h-3.5" />}
+                          </div>
+
+                          {/* Title & Category Tag */}
+                          <div className="flex flex-col gap-0.5">
+                            <span className={`font-sans text-sm font-medium transition-colors ${
+                              isChecked ? 'text-slate-400 line-through decoration-slate-600' : 'text-slate-200 font-bold'
+                            }`}>
+                              {habit.name}
                             </span>
-                            <span className="text-[9px] font-mono text-slate-500 uppercase">
-                              {habit.frequency}
-                            </span>
-                            {habit.isBestToDo && (
-                              <span className="text-[9px] font-mono text-amber-500 bg-amber-500/10 px-1 py-0.2 rounded border border-amber-500/20 font-bold uppercase">
-                                Best To Do ⭐️
+                            
+                            <div className="flex items-center gap-1.5 mt-0.5">
+                              <span className={`px-1.5 py-0.5 rounded text-[9px] font-medium border ${getCategoryColor(habit.category)}`}>
+                                {habit.category}
                               </span>
-                            )}
+                              <span className="text-[9px] font-mono text-slate-500 uppercase">
+                                {habit.frequency}
+                              </span>
+                              {habit.isBestToDo && (
+                                <span className="text-[9px] font-mono text-amber-500 bg-amber-500/10 px-1 py-0.2 rounded border border-amber-500/20 font-bold uppercase">
+                                  Best To Do ⭐️
+                                </span>
+                              )}
+                            </div>
                           </div>
                         </div>
+
+                        {/* Score Impact Display */}
+                        <div className="font-mono text-xs text-right flex flex-col items-end">
+                          {isChecked ? (
+                            <span className="text-emerald-400 font-bold font-mono text-sm flex items-center gap-0.5">
+                              +{points.reward} <span className="text-[9px] text-emerald-500">PTS</span>
+                            </span>
+                          ) : (
+                            <span className="text-rose-400 font-medium font-mono text-xs flex items-center gap-0.5">
+                              -{points.penalty} <span className="text-[9px] text-rose-500/80 font-mono">PTS</span>
+                            </span>
+                          )}
+                          <span className="text-[9px] text-slate-500 font-mono mt-0.5 uppercase tracking-wide">
+                            {habit.difficulty ?? 'Medium'} / {habit.importance ?? 'Medium'}
+                          </span>
+                        </div>
                       </div>
 
-                      {/* Score Impact Display */}
-                      <div className="font-mono text-xs text-right flex flex-col items-end">
-                        {isChecked ? (
-                          <span className="text-emerald-400 font-bold font-mono text-sm flex items-center gap-0.5">
-                            +{points.reward} <span className="text-[9px] text-emerald-500">PTS</span>
-                          </span>
-                        ) : (
-                          <span className="text-rose-400 font-medium font-mono text-xs flex items-center gap-0.5">
-                            -{points.penalty} <span className="text-[9px] text-rose-500/80 font-mono">PTS</span>
-                          </span>
-                        )}
-                        <span className="text-[9px] text-slate-500 font-mono mt-0.5 uppercase tracking-wide">
-                          {habit.difficulty ?? 'Medium'} / {habit.importance ?? 'Medium'}
-                        </span>
-                      </div>
+                      {/* Quantitative Progress Input Panel */}
+                      {isQuantitative && onUpdateHabitValue && (
+                        <div 
+                          className="bg-slate-950/50 rounded-lg p-2.5 border border-slate-900/60 flex flex-col gap-2 mt-1"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <div className="flex justify-between items-center text-xs">
+                            <span className="text-slate-400 font-mono text-[10px] uppercase">
+                              Target: <strong className="text-slate-200">{targetVal}</strong> {habit.unit || ''}
+                            </span>
+                            <span className="font-mono text-slate-300">
+                              Logged: <strong className="text-emerald-400 text-sm font-bold">{currentRecorded}</strong> / {targetVal} {habit.unit || ''} ({progressPercent}%)
+                            </span>
+                          </div>
+
+                          <div className="flex items-center gap-3">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const step = targetVal >= 10 ? 1 : 0.5;
+                                const newVal = Math.max(0, parseFloat((currentRecorded - step).toFixed(1)));
+                                onUpdateHabitValue(habit.id, selectedDate, newVal);
+                              }}
+                              className="px-2 py-1 rounded bg-slate-900 border border-slate-800 text-slate-300 hover:bg-slate-800 hover:text-white transition-colors cursor-pointer text-xs font-bold font-mono"
+                            >
+                              -
+                            </button>
+
+                            <input
+                              type="range"
+                              min="0"
+                              max={Math.max(targetVal * 1.5, targetVal)}
+                              step={targetVal >= 10 ? "1" : "0.5"}
+                              value={currentRecorded}
+                              onChange={(e) => {
+                                const val = parseFloat(e.target.value);
+                                onUpdateHabitValue(habit.id, selectedDate, isNaN(val) ? 0 : val);
+                              }}
+                              className="flex-1 accent-emerald-500 h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer"
+                            />
+
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const step = targetVal >= 10 ? 1 : 0.5;
+                                const newVal = parseFloat((currentRecorded + step).toFixed(1));
+                                onUpdateHabitValue(habit.id, selectedDate, newVal);
+                              }}
+                              className="px-2 py-1 rounded bg-slate-900 border border-slate-800 text-slate-300 hover:bg-slate-800 hover:text-white transition-colors cursor-pointer text-xs font-bold font-mono"
+                            >
+                              +
+                            </button>
+                            
+                            <input
+                              type="number"
+                              min="0"
+                              step="any"
+                              value={currentRecorded}
+                              onChange={(e) => {
+                                const val = parseFloat(e.target.value);
+                                onUpdateHabitValue(habit.id, selectedDate, isNaN(val) ? 0 : val);
+                              }}
+                              className="w-14 px-1.5 py-0.5 text-center rounded bg-slate-900 border border-slate-800 text-slate-200 font-mono text-xs focus:outline-none focus:border-emerald-500"
+                            />
+                          </div>
+
+                          {/* Beautiful Progress Track Indicator */}
+                          <div className="w-full h-1 bg-slate-900 rounded-full overflow-hidden">
+                            <div 
+                              className={`h-full transition-all duration-300 ${
+                                isChecked ? 'bg-gradient-to-r from-emerald-500 to-teal-500' : 'bg-amber-500'
+                              }`}
+                              style={{ width: `${Math.min(100, progressPercent)}%` }}
+                            />
+                          </div>
+                        </div>
+                      )}
                     </div>
                   );
                 })
@@ -403,6 +507,60 @@ export default function HabitManager({ habits, todayStr, onAddHabit, onDeleteHab
                 placeholder="e.g. 5K Running, Code Practice"
                 className="bg-slate-900 border border-slate-800 focus:border-slate-700 outline-none rounded-xl px-3.5 py-2 text-sm text-slate-200 placeholder-slate-600 transition-all font-sans"
               />
+            </div>
+
+            {/* Logging Mode Selection */}
+            <div className="flex flex-col gap-1.5 border-t border-slate-900 pt-3">
+              <label className="text-slate-400 text-xs font-semibold">Logging Mode (မှတ်တမ်းတင်မည့် ပုံစံ)</label>
+              <div className="grid grid-cols-2 gap-1.5">
+                {[
+                  { id: 'binary', label: 'Binary Checkmark' },
+                  { id: 'quantitative', label: 'Quantitative Data' }
+                ].map((mode) => (
+                  <button
+                    key={mode.id}
+                    type="button"
+                    onClick={() => setNewHabitType(mode.id as 'binary' | 'quantitative')}
+                    className={`py-1.5 text-[10px] uppercase font-bold rounded-lg border transition-all cursor-pointer ${
+                      newHabitType === mode.id 
+                        ? 'bg-slate-800 border-slate-600 text-white font-bold' 
+                        : 'bg-slate-900/30 border-slate-900/60 text-slate-500 hover:border-slate-800 hover:text-slate-400'
+                    }`}
+                  >
+                    {mode.label}
+                  </button>
+                ))}
+              </div>
+
+              {/* If quantitative is selected, show target and unit controls */}
+              {newHabitType === 'quantitative' && (
+                <div className="grid grid-cols-2 gap-2 mt-1 p-2 bg-slate-950/40 rounded-lg border border-slate-900">
+                  <div className="flex flex-col gap-1">
+                    <span className="text-[10px] text-slate-500 font-mono uppercase">Daily Target Value</span>
+                    <input
+                      type="number"
+                      min="0.1"
+                      step="any"
+                      value={newTargetValue}
+                      onChange={(e) => {
+                        const val = parseFloat(e.target.value);
+                        setNewTargetValue(isNaN(val) ? 1 : val);
+                      }}
+                      className="bg-slate-900 border border-slate-800 focus:border-slate-700 outline-none rounded-lg px-2.5 py-1 text-xs text-slate-200 font-mono"
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <span className="text-[10px] text-slate-500 font-mono uppercase">Measurement Unit</span>
+                    <input
+                      type="text"
+                      placeholder="e.g. litres, times, hours"
+                      value={newUnit}
+                      onChange={(e) => setNewUnit(e.target.value)}
+                      className="bg-slate-900 border border-slate-800 focus:border-slate-700 outline-none rounded-lg px-2.5 py-1 text-xs text-slate-200"
+                    />
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Category Select Pills */}

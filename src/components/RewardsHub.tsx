@@ -1,5 +1,6 @@
 import React from 'react';
 import { UserTerminalConfig, PredictionTrade, PointsHistoryItem, Habit } from '../types';
+import { isHabitCompletedOnDate } from '../utils/financeEngine';
 import { 
   Award, 
   TrendingUp, 
@@ -14,7 +15,9 @@ import {
   Crown, 
   Trophy,
   ShieldAlert,
-  AlertTriangle
+  AlertTriangle,
+  Lock,
+  Unlock
 } from 'lucide-react';
 
 interface RewardsHubProps {
@@ -22,10 +25,15 @@ interface RewardsHubProps {
   currentIndexPrice: number;
   onPlacePrediction: (wager: number, growthRequired: number, durationDays: number) => void;
   habits?: Habit[];
+  onUnlockLeaderboard?: () => void;
+  today?: string;
 }
 
-export default function RewardsHub({ config, currentIndexPrice, onPlacePrediction, habits = [] }: RewardsHubProps) {
+export default function RewardsHub({ config, currentIndexPrice, onPlacePrediction, habits = [], onUnlockLeaderboard, today = new Date().toISOString().split('T')[0] }: RewardsHubProps) {
   const { totalPoints = 1000, predictions = [], pointsHistory = [] } = config || {};
+  
+  const [showReminderModal, setShowReminderModal] = React.useState(false);
+  const [promiseChecked, setPromiseChecked] = React.useState(false);
 
   // PUBG-style tier calculation helper
   const getTierInfo = (points: number) => {
@@ -220,7 +228,7 @@ export default function RewardsHub({ config, currentIndexPrice, onPlacePredictio
                 const activeHabits = habits.filter(h => h.createdDate <= checkDateStr && (!h.archived || !h.archivedDate || h.archivedDate > checkDateStr));
                 activeHabits.forEach(h => {
                   totalOpportunities++;
-                  if (h.history[checkDateStr] === true) {
+                  if (isHabitCompletedOnDate(h, checkDateStr)) {
                     totalCompletions++;
                   }
                 });
@@ -354,57 +362,165 @@ export default function RewardsHub({ config, currentIndexPrice, onPlacePredictio
           </div>
         </div>
 
-        {/* PUBG RANKING TIER LIST */}
-        <div className="bg-slate-950/40 border border-slate-800/50 backdrop-blur-md p-5 rounded-xl flex flex-col gap-4">
-          <div className="border-b border-slate-800/60 pb-2">
-            <h3 className="font-sans font-bold text-white text-md flex items-center gap-2">
-              <Trophy className="w-4 h-4 text-amber-500" />
-              Gamified Seasonal Rankings (PUBG-Style)
-            </h3>
-            <span className="text-[10px] text-slate-500 block mt-0.5">Quarterly Rank Badges & Rewards</span>
+        {/* LEADERBOARD & RANKINGS GATED ACCESS */}
+        {!config.leaderboardUnlocked ? (
+          <div className="bg-gradient-to-br from-slate-950 to-slate-900 border border-amber-500/30 p-6 rounded-xl flex flex-col items-center text-center gap-4 relative overflow-hidden shadow-[0_0_30px_rgba(245,158,11,0.05)] animate-fade-in">
+            <div className="absolute top-0 right-0 w-36 h-36 bg-amber-500/5 rounded-full blur-3xl"></div>
+            <div className="w-14 h-14 rounded-full bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-500 text-2xl animate-pulse">
+              🔒
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <h3 className="font-sans font-black text-white text-sm uppercase tracking-wider">
+                Rankings & Leaderboard Locked
+              </h3>
+              <p className="text-[11px] text-slate-400 max-w-sm leading-relaxed">
+                Competitive ranking loops are disabled by default to keep you focused on intrinsic growth rather than dopamine vanity metrics. Open rankings only when you are ready for the honest truth.
+              </p>
+              <div className="h-px bg-slate-800/80 my-1"></div>
+              <p className="text-[11px] text-amber-500/90 font-medium italic">
+                "ကိုယ့်ကိုယ်ကိုယ် လိမ်ညာခြင်းမရှိဘဲ ရိုးသားစွာ ကြိုးစားဖို့ အဆင်သင့်ဖြစ်ပြီလား?"
+              </p>
+            </div>
+            
+            <button
+              onClick={() => setShowReminderModal(true)}
+              className="mt-2 w-full py-2.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 font-sans font-black text-[10px] uppercase tracking-wider rounded-lg shadow-lg shadow-amber-500/10 active:scale-95 transition-all duration-150 flex items-center justify-center gap-1.5 cursor-pointer"
+            >
+              <Unlock className="w-3.5 h-3.5" />
+              Unlock Leaderboards & Rankings
+              <span className="text-[9px] opacity-75">(ခေါင်းဆောင်မှုဇယား ဖွင့်ရန်)</span>
+            </button>
           </div>
+        ) : (
+          <>
+            {/* PUBG RANKING TIER LIST */}
+            <div className="bg-slate-950/40 border border-slate-800/50 backdrop-blur-md p-5 rounded-xl flex flex-col gap-4">
+              <div className="border-b border-slate-800/60 pb-2">
+                <h3 className="font-sans font-bold text-white text-md flex items-center gap-2">
+                  <Trophy className="w-4 h-4 text-amber-500" />
+                  Gamified Seasonal Rankings (PUBG-Style)
+                </h3>
+                <span className="text-[10px] text-slate-500 block mt-0.5">Quarterly Rank Badges & Rewards</span>
+              </div>
 
-          <div className="flex flex-col gap-2">
-            {tiersShowcase.map((t) => {
-              const isCurrentRank = currentTier.name.includes(t.name);
-              const pointsNeeded = parseInt(t.req.replace(/\D/g, ''));
-              const isUnlocked = totalPoints >= pointsNeeded;
+              <div className="flex flex-col gap-2">
+                {tiersShowcase.map((t) => {
+                  const isCurrentRank = currentTier.name.includes(t.name);
+                  const pointsNeeded = parseInt(t.req.replace(/\D/g, ''));
+                  const isUnlocked = totalPoints >= pointsNeeded;
+
+                  return (
+                    <div 
+                      key={t.name}
+                      className={`p-3 rounded-xl border flex items-center justify-between gap-3 transition-all ${
+                        isCurrentRank 
+                          ? 'bg-slate-800/40 border-emerald-500 shadow-[0_0_12px_rgba(16,185,129,0.15)]' 
+                          : isUnlocked 
+                            ? 'border-slate-800/80 bg-slate-900/10 opacity-75' 
+                            : 'border-slate-900 opacity-40'
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <span className="text-2xl">{t.badge}</span>
+                        <div className="flex flex-col">
+                          <span className={`font-sans text-xs font-bold ${isCurrentRank ? 'text-emerald-400' : 'text-slate-200'}`}>
+                            {t.name} Tier {isCurrentRank && '(Current)'}
+                          </span>
+                          <span className="text-[10px] text-slate-500 font-mono">Requires {t.req}</span>
+                        </div>
+                      </div>
+
+                      <div>
+                        {isCurrentRank ? (
+                          <span className="text-[9px] bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 px-2 py-0.5 rounded font-bold uppercase tracking-wider">Active</span>
+                        ) : isUnlocked ? (
+                          <span className="text-[9px] bg-slate-800 text-slate-400 px-2 py-0.5 rounded uppercase">Unlocked</span>
+                        ) : (
+                          <span className="text-[9px] text-slate-600 uppercase">Locked</span>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* COMPETITIVE LIVE LEADERBOARD (PUBG STYLE) */}
+            {(() => {
+              const competitors = [
+                { name: 'SoloGrinder ⚡️', points: 13420, tier: 'Conqueror', badge: '👑', winRate: 96, activeDays: 45 },
+                { name: 'HabitSlayer 🎯', points: 7850, tier: 'Crown', badge: '👑', winRate: 92, activeDays: 38 },
+                { name: 'DisciplineDiva 🔥', points: 4120, tier: 'Diamond', badge: '💠', winRate: 88, activeDays: 24 },
+                { name: 'ZenMind 🧘‍♂️', points: 1450, tier: 'Silver', badge: '🥈', winRate: 75, activeDays: 14 },
+                { name: 'StarterPro 🌱', points: 250, tier: 'Bronze', badge: '🥉', winRate: 60, activeDays: 5 }
+              ];
+
+              const userRow = {
+                name: 'You (ကိုယ့်အကောင့်) ⚡️',
+                points: totalPoints,
+                tier: currentTier.name.split(' ')[0],
+                badge: currentTier.badge.split(' ')[0],
+                winRate: habits.length > 0 ? Math.round((habits.filter(h => isHabitCompletedOnDate(h, today)).length / habits.length) * 100) : 0,
+                activeDays: pointsHistory ? new Set(pointsHistory.map(p => p.date)).size || 1 : 1,
+                isUser: true
+              };
+
+              const allRows = [...competitors, userRow].sort((a, b) => b.points - a.points);
 
               return (
-                <div 
-                  key={t.name}
-                  className={`p-3 rounded-xl border flex items-center justify-between gap-3 transition-all ${
-                    isCurrentRank 
-                      ? 'bg-slate-800/40 border-emerald-500 shadow-[0_0_12px_rgba(16,185,129,0.15)]' 
-                      : isUnlocked 
-                        ? 'border-slate-800/80 bg-slate-900/10 opacity-75' 
-                        : 'border-slate-900 opacity-40'
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <span className="text-2xl">{t.badge}</span>
-                    <div className="flex flex-col">
-                      <span className={`font-sans text-xs font-bold ${isCurrentRank ? 'text-emerald-400' : 'text-slate-200'}`}>
-                        {t.name} Tier {isCurrentRank && '(Current)'}
-                      </span>
-                      <span className="text-[10px] text-slate-500 font-mono">Requires {t.req}</span>
-                    </div>
+                <div className="bg-slate-950/40 border border-amber-500/20 backdrop-blur-md p-5 rounded-xl flex flex-col gap-4 relative overflow-hidden">
+                  <div className="absolute top-0 right-0 w-24 h-24 bg-amber-500/5 rounded-full blur-2xl"></div>
+                  <div className="border-b border-slate-800/60 pb-2 flex justify-between items-center">
+                    <h3 className="font-sans font-bold text-white text-md flex items-center gap-2">
+                      <Trophy className="w-4 h-4 text-amber-500 animate-bounce" />
+                      Season 1 Grinders Leaderboard (ဦးဆောင်သူဇယား)
+                    </h3>
+                    <span className="text-[9px] bg-amber-500/10 text-amber-400 border border-amber-500/30 px-1.5 py-0.5 rounded font-bold font-mono">ACTIVE COMPETITION</span>
                   </div>
 
-                  <div>
-                    {isCurrentRank ? (
-                      <span className="text-[9px] bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 px-2 py-0.5 rounded font-bold uppercase tracking-wider">Active</span>
-                    ) : isUnlocked ? (
-                      <span className="text-[9px] bg-slate-800 text-slate-400 px-2 py-0.5 rounded uppercase">Unlocked</span>
-                    ) : (
-                      <span className="text-[9px] text-slate-600 uppercase">Locked</span>
-                    )}
+                  <div className="flex flex-col gap-2">
+                    {allRows.map((row, index) => {
+                      const isUser = 'isUser' in row;
+                      return (
+                        <div 
+                          key={row.name}
+                          className={`p-3 rounded-lg border flex items-center justify-between gap-3 transition-all ${
+                            isUser 
+                              ? 'bg-amber-500/10 border-amber-500/50 shadow-[0_0_12px_rgba(245,158,11,0.15)] font-bold' 
+                              : 'border-slate-800/60 bg-slate-900/10'
+                          }`}
+                        >
+                          <div className="flex items-center gap-2.5">
+                            <span className={`w-5 text-center font-mono text-xs font-black ${
+                              index === 0 ? 'text-amber-400' :
+                              index === 1 ? 'text-slate-300' :
+                              index === 2 ? 'text-amber-600' :
+                              'text-slate-500'
+                            }`}>
+                              #{index + 1}
+                            </span>
+                            <span className="text-xl">{row.badge}</span>
+                            <div className="flex flex-col">
+                              <span className={`font-sans text-xs ${isUser ? 'text-amber-400 font-extrabold' : 'text-slate-200'}`}>
+                                {row.name}
+                              </span>
+                              <span className="text-[9px] text-slate-500 uppercase font-mono">
+                                {row.tier} • Win Rate {row.winRate}% • {row.activeDays} Days
+                              </span>
+                            </div>
+                          </div>
+                          <span className={`font-mono text-xs font-black ${isUser ? 'text-amber-400' : 'text-slate-300'}`}>
+                            {row.points.toLocaleString()} PTS
+                          </span>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               );
-            })}
-          </div>
-        </div>
+            })()}
+          </>
+        )}
 
         {/* RECENT POINTS TRANSACTION LOG */}
         <div className="bg-slate-950/40 border border-slate-800/50 backdrop-blur-md p-5 rounded-xl flex-1 flex flex-col gap-4">
@@ -444,6 +560,113 @@ export default function RewardsHub({ config, currentIndexPrice, onPlacePredictio
         </div>
 
       </div>
+
+      {/* HEART-HITTING INTEGRITY REMINDER MODAL */}
+      {showReminderModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md">
+          <div className="bg-gradient-to-b from-slate-900 to-slate-950 border border-amber-500/40 max-w-2xl w-full rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] animate-scale-up">
+            {/* Header */}
+            <div className="p-4 border-b border-slate-800 flex items-center justify-between bg-slate-950/60">
+              <span className="text-xs md:text-sm font-sans font-extrabold text-amber-400 flex items-center gap-2">
+                ⚠️ INTEGRITY COVENANT / ကတိသစ္စာပြုချက်
+              </span>
+              <button 
+                onClick={() => setShowReminderModal(false)}
+                className="text-slate-400 hover:text-white transition-colors cursor-pointer text-sm"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Scrollable body with both English and Burmese sections */}
+            <div className="p-5 overflow-y-auto flex flex-col gap-5 leading-relaxed">
+              
+              {/* MYANMAR SECTION */}
+              <div className="flex flex-col gap-2 bg-slate-950/30 p-4 rounded-xl border border-amber-500/10">
+                <h4 className="text-amber-400 font-sans font-extrabold text-xs uppercase tracking-wider flex items-center gap-1.5">
+                  🇲🇲 စစ်မှန်သော စိတ်ဓာတ်ခွန်အား စမ်းသပ်ရာ (မြန်မာဘာသာ)
+                </h4>
+                <p className="text-xs text-slate-300 leading-relaxed font-sans font-medium">
+                  "ဒီစနစ်ဟာ သူတစ်ပါးရဲ့ အသိအမှတ်ပြုမှုကို ရယူဖို့မဟုတ်ပါဘူး... ကိုယ့်စိတ်ဓာတ်ကို ကိုယ်တိုင်အုပ်စိုးနိုင်စွမ်း ရှိမရှိ စမ်းသပ်တဲ့ စစ်မြေပြင်တစ်ခုသာ ဖြစ်ပါတယ်။
+                </p>
+                <p className="text-xs text-slate-300 leading-relaxed font-sans">
+                  ဟုတ်ပါတယ်၊ ခင်ဗျား မှတ်တမ်းတွေကို လိမ်ညာလို့ရတယ်။ တစ်ချက်နှိပ်ရုံနဲ့ အလေ့အကျင့်တွေကို ပြီးမြောက်သွားပြီဆိုပြီး ကလစ်နှိပ်ပြီး အမှတ်တွေ ရယူလို့ရတယ်။ စနစ်ရဲ့ မက္ကင်းနစ်တွေကို လှည့်စားပြီး Leaderboard ရဲ့ ထိပ်ဆုံးကို အလွယ်ဆုံးနည်းတွေနဲ့ တက်သွားလို့လည်း ရပါတယ်။ ဒါပေမဲ့ ခင်ဗျား ဘာတစ်ခုမှ ရရှိမှာမဟုတ်ဘူး။ ငွေကြေးလည်းမရဘူး၊ တကယ့်ဆုလာဘ်လည်းမရှိဘူး၊ စစ်မှန်တဲ့ စိတ်ဓာတ်ခွန်အားကို ဖြတ်လမ်းနည်းနဲ့ ရယူနိုင်မှာလည်း မဟုတ်ပါဘူး။ ဒါဟာ သီးသန့်စနစ်ဖြစ်လို့ ခင်ဗျားလိမ်ညာနေတာကို ဘယ်သူမှ စောင့်ကြည့်နေမှာမဟုတ်သလို၊ လာရောက်စစ်ဆေးမယ့်သူလည်း မရှိပါဘူး။
+                </p>
+                <p className="text-xs text-slate-300 leading-relaxed font-sans font-bold text-amber-500">
+                  ခင်ဗျား စနစ်ကို လွယ်လွယ်လေး လှည့်စားနိုင်ပေမယ့် တစ်ခုပဲ မှတ်ထားပါ... 'ကိုယ့်ကိုယ်ကိုယ်' တော့ ဘယ်တော့မှ လိမ်လို့မရပါဘူး။
+                </p>
+                <p className="text-[11px] text-slate-400 leading-relaxed font-sans">
+                  ကိုယ့်ရဲ့ တန်ဖိုးရှိတဲ့ အချိန်တွေကို သုံးပြီး အမှတ်အတုတွေကို လိမ်ညာဖန်တီးနေခြင်းဟာ ကိုယ့်ဘဝရဲ့ အဖိုးတန်အချိန်တွေကို ဒစ်ဂျစ်တယ် လှည့်စားမှုနောက်မှာ အချည်းနှီး အဆုံးရှုံးခံနေတာပဲ ဖြစ်ပါလိမ့်မယ်။ တစ်ဖက်ကကြည့်ရင်တော့ ခင်ဗျားရဲ့ ရမှတ်အတုတွေက တခြားအမှန်တကယ် ကြိုးစားအားထုတ်နေတဲ့ Grinder တွေကို ပိုပြီး အားကျစိတ်ဖြစ်စေပြီး အဆင့်တွေ တက်လာဖို့ လှုံ့ဆော်ပေးရာ ရောက်ချင်ရောက်ပါလိမ့်မယ်။
+                </p>
+              </div>
+
+              {/* ENGLISH SECTION */}
+              <div className="flex flex-col gap-2 bg-slate-950/30 p-4 rounded-xl border border-slate-800/50">
+                <h4 className="text-slate-400 font-sans font-extrabold text-xs uppercase tracking-wider flex items-center gap-1.5">
+                  🛡️ Crucible of Self-Sovereignty (English)
+                </h4>
+                <p className="text-xs text-slate-300 italic leading-relaxed font-sans font-medium">
+                  "This system is not about validation—it is an arena of pure self-sovereignty.
+                </p>
+                <p className="text-xs text-slate-300 italic leading-relaxed font-sans">
+                  Yes, you can fake your logs. You can mark habits completed with a single click. You can bypass limits, exploit the mechanics, and reach the top of the leaderboards with absolute ease. But you get absolutely nothing. No cash, no real rewards, no shortcut to strength. This is a private sandbox; no one is watching, and no one is coming to verify.
+                </p>
+                <p className="text-xs text-slate-300 font-sans font-bold text-amber-500">
+                  You can easily trick our system. But remember: You cannot lie to yourself.
+                </p>
+                <p className="text-[11px] text-slate-400 leading-relaxed font-sans">
+                  When you inflate your points falsely, you only waste your precious, finite lifetime on digital illusions. Meanwhile, your fake score might serve as fuel to inspire real grinders to push harder and climb higher. If you are ready to face yourself with absolute honesty, unlock the board. If not, the shadows are always comfortable."
+                </p>
+              </div>
+
+              {/* Integrity Pledge Checkbox */}
+              <label className="flex items-start gap-3 bg-amber-500/5 p-3 rounded-lg border border-amber-500/20 cursor-pointer select-none">
+                <input 
+                  type="checkbox" 
+                  checked={promiseChecked}
+                  onChange={(e) => setPromiseChecked(e.target.checked)}
+                  className="mt-0.5 rounded text-amber-500 focus:ring-amber-500 bg-slate-950 border-slate-800"
+                />
+                <div className="flex flex-col">
+                  <span className="text-xs text-slate-200 font-bold font-sans">
+                    I pledge to track honestly. I will not cheat myself.
+                  </span>
+                  <span className="text-[11px] text-slate-400 mt-0.5 font-sans">
+                    ကျွန်ုပ်သည် လိမ်ညာခြင်းမရှိဘဲ ရိုးသားစွာသာ မှတ်တမ်းတင်ပြီး မိမိကိုယ်ကိုယ် စိန်ခေါ်ပါမည်။
+                  </span>
+                </div>
+              </label>
+            </div>
+
+            {/* Action buttons */}
+            <div className="p-4 border-t border-slate-800 bg-slate-950/60 flex items-center justify-end gap-3">
+              <button
+                onClick={() => setShowReminderModal(false)}
+                className="px-4 py-2 text-[10px] font-sans text-slate-400 hover:text-white transition-colors uppercase font-bold tracking-wider cursor-pointer"
+              >
+                Let me think (စဉ်းစားပါဦးမည်)
+              </button>
+              
+              <button
+                disabled={!promiseChecked}
+                onClick={() => {
+                  if (onUnlockLeaderboard) {
+                    onUnlockLeaderboard();
+                  }
+                  setShowReminderModal(false);
+                }}
+                className={`px-5 py-2 rounded-lg text-[10px] font-sans font-black uppercase tracking-wider transition-all duration-150 flex items-center gap-1.5 cursor-pointer ${
+                  promiseChecked 
+                    ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 shadow-md shadow-amber-500/10 hover:brightness-110 active:scale-95' 
+                    : 'bg-slate-800 text-slate-600 cursor-not-allowed'
+                }`}
+              >
+                🔥 Challenge Myself Honestly (စိန်ခေါ်မှု လက်ခံမည်)
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );

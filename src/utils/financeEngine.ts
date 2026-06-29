@@ -40,6 +40,35 @@ export function isHabitActiveOnDate(habit: Habit, dateStr: string): boolean {
 }
 
 /**
+ * Helper to determine if a habit (either binary or quantitative) is completed on a specific date.
+ */
+export function isHabitCompletedOnDate(habit: Habit, dateStr: string): boolean {
+  const val = habit.history[dateStr];
+  if (val === undefined || val === null) return false;
+  if (habit.habitType === 'quantitative') {
+    const target = habit.targetValue ?? 1;
+    return typeof val === 'number' && val >= target;
+  }
+  return val === true;
+}
+
+/**
+ * Gets progress percentage (0 - 100) of a habit on a date.
+ */
+export function getHabitProgressPercent(habit: Habit, dateStr: string): number {
+  const val = habit.history[dateStr];
+  if (val === undefined || val === null) return 0;
+  if (habit.habitType === 'quantitative') {
+    const target = habit.targetValue ?? 1;
+    if (typeof val === 'number') {
+      return Math.min(100, Math.round((val / target) * 100));
+    }
+    return val ? 100 : 0;
+  }
+  return val === true ? 100 : 0;
+}
+
+/**
  * PUBG-Style rank tiers and corresponding missed-habit penalty multipliers,
  * wager limits, and metadata.
  */
@@ -152,7 +181,7 @@ export function getWeeklyConsistency(habits: Habit[], todayStr: string): number 
     activeHabits.forEach(habit => {
       if (isHabitActiveOnDate(habit, date)) {
         totalOpportunities++;
-        if (habit.history[date] === true) {
+        if (isHabitCompletedOnDate(habit, date)) {
           totalCompletions++;
         }
       }
@@ -226,7 +255,7 @@ export function calculateDailyCandles(
       const histHabits = habits.filter(h => h.createdDate <= checkDate && (!h.archived || !h.archivedDate || h.archivedDate > checkDate));
       histHabits.forEach(h => {
         rollingOps++;
-        if (h.history[checkDate] === true) {
+        if (isHabitCompletedOnDate(h, checkDate)) {
           rollingComps++;
         }
       });
@@ -263,7 +292,7 @@ export function calculateDailyCandles(
       const isActiveToday = isHabitActiveOnDate(habit, date);
       const isWeekendGrace = ignoreWeekends && isWeekend && !isActiveToday;
 
-      const isCompleted = habit.history[date] === true;
+      const isCompleted = isHabitCompletedOnDate(habit, date);
       const points = getHabitPoints(habit);
       
       const positiveImpact = points.reward * rewardMult;
@@ -524,7 +553,7 @@ export function calculateMetrics(habits: Habit[], dailyCandles: Candle[]): Dashb
     dates.forEach((date) => {
       if (isHabitActiveOnDate(habit, date)) {
         totalOpportunities += 1;
-        if (habit.history[date] === true) {
+        if (isHabitCompletedOnDate(habit, date)) {
           totalCompletions += 1;
         }
       }
@@ -600,7 +629,7 @@ export function calculateMetrics(habits: Habit[], dailyCandles: Candle[]): Dashb
     let prevStatus: boolean | null = null;
 
     habitDates.forEach((date) => {
-      const currentStatus = habit.history[date] === true;
+      const currentStatus = isHabitCompletedOnDate(habit, date);
       if (prevStatus !== null && currentStatus !== prevStatus) {
         switches += 1;
       }
@@ -704,7 +733,7 @@ export function auditPromotionState(
               passed: true
             };
           } else {
-            const completedOnDay = activeOnDay.filter(h => h.history[day] === true);
+            const completedOnDay = activeOnDay.filter(h => isHabitCompletedOnDate(h, day));
             const pointsEarned = completedOnDay.reduce((sum, h) => sum + getHabitPoints(h).reward, 0);
             const totalPointsPossible = activeOnDay.reduce((sum, h) => sum + getHabitPoints(h).reward, 0);
             
@@ -748,7 +777,7 @@ export function auditPromotionState(
       if (evaluatedDays.length === 3) {
         status = 'COMPLETED';
         const bonus = 100;
-        totalPoints = promo.targetPoints + bonus; // promoted successfully!
+        totalPoints = config.totalPoints + bonus; // promoted successfully!
         pointsHistory.unshift({
           id: `promo_success_${Date.now()}`,
           date: today,

@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { Habit, Candle, DashboardMetrics, UserTerminalConfig } from '../types';
 import { addDays, getDatesInRange, formatDateLabel } from '../utils/dateHelpers';
-import { getHabitPoints, isHabitActiveOnDate, getTierInfo } from '../utils/financeEngine';
+import { getHabitPoints, isHabitActiveOnDate, getTierInfo, isHabitCompletedOnDate } from '../utils/financeEngine';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   TrendingUp, 
@@ -114,7 +114,7 @@ export default function ReportHub({ habits, config, dailyCandles, metrics, today
       let dailyComps = 0;
 
       activeOnDate.forEach((habit) => {
-        const completed = habit.history[date] === true;
+        const completed = isHabitCompletedOnDate(habit, date);
         const cat = habit.category;
         
         // Update general counters
@@ -162,7 +162,7 @@ export default function ReportHub({ habits, config, dailyCandles, metrics, today
         const wasCreated = habit.createdDate <= date;
         const wasNotArchivedYet = !habit.archived || !habit.archivedDate || habit.archivedDate > date;
         if (wasCreated && wasNotArchivedYet && isHabitActiveOnDate(habit, date)) {
-          const completed = habit.history[date] === true;
+          const completed = isHabitCompletedOnDate(habit, date);
           if (prevVal !== null && completed !== prevVal) {
             switches++;
           }

@@ -9,7 +9,7 @@ export interface Habit {
   createdDate: string; // YYYY-MM-DD format
   archivedDate?: string; // YYYY-MM-DD format if archived
   archived?: boolean; // archived flag so deleted habits keep past data
-  history: Record<string, boolean>; // key is YYYY-MM-DD, value is completion status
+  history: Record<string, boolean | number>; // key is YYYY-MM-DD, value is completion status or progress value
   weight?: number; // Custom positive point override (optional)
   penalty?: number; // Custom negative point override (optional)
   difficulty?: 'Easy' | 'Medium' | 'Hard'; // Auto point multiplier
@@ -18,6 +18,11 @@ export interface Habit {
   riskLevel?: 'Low' | 'Medium' | 'High'; // Custom risk weight affecting intraday volatility
   isActiveOnWeekends?: boolean; // Custom tracking days
   selectiveDays?: number[]; // Custom selective days (0 = Sunday, 1 = Monday, etc.)
+  
+  // Quantitative Additions
+  habitType?: 'binary' | 'quantitative'; // Tracking mode
+  targetValue?: number; // Target number (e.g. 3, 20, 100)
+  unit?: string; // Unit (e.g. "litres", "pushups", "hours", etc.)
 }
 
 export interface PaperTradePosition {
@@ -99,6 +104,7 @@ export interface UserTerminalConfig {
   lastActiveDate?: string;
   consecutiveAfkCount?: number;
   afkHistory?: string[];
+  leaderboardUnlocked?: boolean;
 }
 
 export interface Candle {

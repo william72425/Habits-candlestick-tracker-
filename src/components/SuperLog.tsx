@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Habit, Candle } from '../types';
 import { formatDateLabel, getDatesInRange } from '../utils/dateHelpers';
+import { isHabitCompletedOnDate } from '../utils/financeEngine';
 import { Search, Calendar, ChevronRight, SlidersHorizontal, ArrowUpRight, ArrowDownRight, Edit2 } from 'lucide-react';
 
 interface SuperLogProps {
@@ -25,7 +26,7 @@ export default function SuperLog({ habits, dailyCandles, onSelectBacktrackDate }
     // 2. Filter by search term (search for habits completed on this day)
     if (searchTerm.trim() !== '') {
       const activeCompletedHabitsOnDay = habits.filter(
-        h => h.createdDate <= candle.rawDate && h.history[candle.rawDate] === true
+        h => h.createdDate <= candle.rawDate && isHabitCompletedOnDate(h, candle.rawDate)
       );
       const matchesHabitName = activeCompletedHabitsOnDay.some(h => 
         h.name.toLowerCase().includes(searchTerm.toLowerCase())
@@ -40,12 +41,12 @@ export default function SuperLog({ habits, dailyCandles, onSelectBacktrackDate }
 
   // Get list of habit names completed on a specific day
   const getCompletionsOnDay = (dateStr: string) => {
-    return habits.filter(h => h.createdDate <= dateStr && h.history[dateStr] === true);
+    return habits.filter(h => h.createdDate <= dateStr && isHabitCompletedOnDate(h, dateStr));
   };
 
   // Get list of active habits missed on a specific day
   const getMissesOnDay = (dateStr: string) => {
-    return habits.filter(h => h.createdDate <= dateStr && h.history[dateStr] !== true);
+    return habits.filter(h => h.createdDate <= dateStr && !isHabitCompletedOnDate(h, dateStr));
   };
 
   return (
