@@ -99,6 +99,7 @@ export default function App() {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [authLoading, setAuthLoading] = useState<boolean>(true);
   const [isGuestMode, setIsGuestMode] = useState<boolean>(false);
+  const [isCloudLoadComplete, setIsCloudLoadComplete] = useState<boolean>(false);
 
   // Future Betting States
   const [betWager, setBetWager] = useState<number>(100);
@@ -174,7 +175,8 @@ export default function App() {
             } else {
               setConfig(DEFAULT_TERMINAL_CONFIG);
             }
-          } else {
+            setIsCloudLoadComplete(true);
+          } else if (!result.isTimeout) {
             // New Firebase user - inherit current local storage progress or fallback to defaults
             const cachedHabits = localStorage.getItem(LOCAL_STORAGE_KEY);
             const cachedConfig = localStorage.getItem(LOCAL_STORAGE_KEY_CONFIG);
@@ -196,20 +198,34 @@ export default function App() {
             setHabits(initialHabits);
             setConfig(initialConfig);
             
-            // Only back up/save to the cloud if this was a legitimate new user signup (no document found),
-            // and NOT a slow network timeout fallback, protecting existing cloud data from getting overwritten!
-            if (!result.isTimeout) {
-              await saveUserData(user.uid, initialHabits, initialConfig);
+            await saveUserData(user.uid, initialHabits, initialConfig);
+            setIsCloudLoadComplete(true);
+          } else {
+            // Network timeout fallback
+            console.warn("Firestore fetch timed out. Operating in offline/cached mode.");
+            const cachedHabits = localStorage.getItem(LOCAL_STORAGE_KEY);
+            const cachedConfig = localStorage.getItem(LOCAL_STORAGE_KEY_CONFIG);
+            setHabits(cachedHabits ? JSON.parse(cachedHabits) : getMockHabits());
+            if (cachedConfig) {
+              setConfig({
+                ...DEFAULT_TERMINAL_CONFIG,
+                ...JSON.parse(cachedConfig),
+              });
+            } else {
+              setConfig(DEFAULT_TERMINAL_CONFIG);
             }
+            setIsCloudLoadComplete(false); // Do not allow overwriting cloud database with offline cached data
           }
         } catch (err) {
           console.error("Error fetching or initializing user document from Firestore:", err);
           setHabits(getMockHabits());
           setConfig(DEFAULT_TERMINAL_CONFIG);
+          setIsCloudLoadComplete(false);
         }
         setAppInitialized(true);
       } else {
         setCurrentUser(null);
+        setIsCloudLoadComplete(false);
         // Check if guest mode was manually flagged
         const guestFlag = localStorage.getItem('guest_mode_active') === 'true';
         setIsGuestMode(guestFlag);
@@ -256,26 +272,26 @@ export default function App() {
     if (!appInitialized) return;
     try {
       localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(habits));
-      if (currentUser) {
+      if (currentUser && isCloudLoadComplete) {
         saveUserData(currentUser.uid, habits, config);
       }
     } catch (e) {
       console.error('Error saving habits state:', e);
     }
-  }, [habits, appInitialized, currentUser]);
+  }, [habits, appInitialized, currentUser, isCloudLoadComplete]);
 
   // 3. Persist Config Changes to LocalStorage and Firebase Firestore
   useEffect(() => {
     if (!appInitialized) return;
     try {
       localStorage.setItem(LOCAL_STORAGE_KEY_CONFIG, JSON.stringify(config));
-      if (currentUser) {
+      if (currentUser && isCloudLoadComplete) {
         saveUserData(currentUser.uid, habits, config);
       }
     } catch (e) {
       console.error('Error saving config state:', e);
     }
-  }, [config, appInitialized, currentUser]);
+  }, [config, appInitialized, currentUser, isCloudLoadComplete]);
 
   const [unmarkedDayToReconcile, setUnmarkedDayToReconcile] = useState<string | null>(null);
   const [afkCheckedHabits, setAfkCheckedHabits] = useState<Record<string, boolean>>({});
@@ -351,6 +367,7 @@ export default function App() {
       localStorage.removeItem('guest_mode_active');
       setIsGuestMode(false);
       setCurrentUser(null);
+      setIsCloudLoadComplete(false);
       // Reset state to force the landing page cleanly
       setHabits(getMockHabits());
       setConfig(DEFAULT_TERMINAL_CONFIG);
