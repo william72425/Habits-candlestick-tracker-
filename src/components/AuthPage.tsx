@@ -2,7 +2,9 @@ import React, { useState } from 'react';
 import { 
   auth, 
   googleProvider, 
-  signInWithPopup 
+  signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult
 } from '../utils/firebase';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
@@ -37,6 +39,7 @@ export default function AuthPage({
   const [loading, setLoading] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<{ en: string; my: string } | null>(null);
   const [successMessage, setSuccessMessage] = useState<{ en: string; my: string } | null>(null);
+  const [isIframe, setIsIframe] = useState<boolean>(false);
 
   // Language setting
   const [localLang, setLocalLang] = useState<'en' | 'my'>('my');
@@ -45,29 +48,94 @@ export default function AuthPage({
 
   const t = AUTH_LOCALIZATION[lang];
 
-  // Google Provider Popup Authentication
+  // Detect iframe environment
+  React.useEffect(() => {
+    try {
+      setIsIframe(window.self !== window.top);
+    } catch (e) {
+      setIsIframe(true);
+    }
+  }, []);
+
+  // Handle redirect authentication results on component mount (critical for top-level Vercel flow)
+  React.useEffect(() => {
+    let active = true;
+    const checkRedirectResult = async () => {
+      // Don't check for redirects inside iframe since we don't use redirect there
+      if (isIframe) return;
+      
+      try {
+        setLoading(true);
+        const result = await getRedirectResult(auth);
+        if (result && active) {
+          setSuccessMessage({ 
+            en: t.successSignIn || "Terminal authenticated successfully!", 
+            my: t.successSignIn || "အကောင့်ဝင်ရောက်မှု အောင်မြင်ပါသည်။" 
+          });
+          setTimeout(() => {
+            if (active) onSuccess();
+          }, 1250);
+        }
+      } catch (err: any) {
+        console.error("Firebase Redirect auth resolution error:", err);
+        // Ignore cases where there's no state or it was cancelled
+        if (active && err.code !== "auth/no-current-user") {
+          setErrorMessage({
+            en: `Google Authentication failed: ${err.message || "Please try again."}`,
+            my: `Google အကောင့်ဝင်ရန် ကြိုးစားမှု မအောင်မြင်ပါ- ${err.message || "ထပ်မံကြိုးစားပေးပါ။"}`
+          });
+        }
+      } finally {
+        if (active) setLoading(false);
+      }
+    };
+
+    checkRedirectResult();
+
+    return () => {
+      active = false;
+    };
+  }, [isIframe, onSuccess, t.successSignIn]);
+
+  // Google Provider Authentication
   const handleGoogleAuth = async () => {
     setErrorMessage(null);
     setSuccessMessage(null);
     setLoading(true);
-    try {
-      await signInWithPopup(auth, googleProvider);
-      setSuccessMessage({ en: t.successSignIn, my: t.successSignIn });
-      setTimeout(() => {
-        onSuccess();
-      }, 1200);
-    } catch (err: any) {
-      if (err.code === "auth/popup-closed-by-user") {
+
+    if (isIframe) {
+      // FALLBACK: Inside iframe (AI Studio Preview), use signInWithPopup
+      try {
+        await signInWithPopup(auth, googleProvider);
+        setSuccessMessage({ en: t.successSignIn, my: t.successSignIn });
+        setTimeout(() => {
+          onSuccess();
+        }, 1200);
+      } catch (err: any) {
+        if (err.code === "auth/popup-closed-by-user") {
+          setErrorMessage({
+            en: "Authentication window was closed before completion.",
+            my: "အကောင့်ဝင်ရန် ဖွင့်ထားသော Window ပိတ်သွားခဲ့သည်။"
+          });
+        } else {
+          setErrorMessage({ en: t.googleError, my: t.googleError });
+          console.error(err);
+        }
+      } finally {
+        setLoading(false);
+      }
+    } else {
+      // MAIN FLOW: On Vercel (outside iframe), use high-stability signInWithRedirect
+      try {
+        await signInWithRedirect(auth, googleProvider);
+      } catch (err: any) {
         setErrorMessage({
-          en: "Authentication window was closed before completion.",
-          my: "အကောင့်ဝင်ရန် ဖွင့်ထားသော Window ပိတ်သွားခဲ့သည်။"
+          en: `Failed to initiate Google sign-in: ${err.message || "Please retry."}`,
+          my: `Google Sign-in စတင်ရန် မအောင်မြင်ပါ- ${err.message || "ထပ်မံကြိုးစားပါ။"}`
         });
-      } else {
-        setErrorMessage({ en: t.googleError, my: t.googleError });
+        setLoading(false);
         console.error(err);
       }
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -164,6 +232,24 @@ export default function AuthPage({
             </motion.div>
           )}
         </AnimatePresence>
+
+        {/* IFRAME POPUP BLOCKER WARNING */}
+        {isIframe && (
+          <div className="bg-amber-500/10 border border-amber-500/20 p-3.5 rounded-xl mb-5 flex items-start gap-3">
+            <ShieldAlert className="w-4 h-4 text-amber-400 shrink-0 mt-0.5 animate-pulse" />
+            <div className="flex flex-col text-left text-xs leading-relaxed text-amber-300">
+              <span className="font-bold">
+                {lang === 'en' ? '⚠️ Iframe Browser Constraint' : '⚠️ Browser လုံခြုံရေး သတိပေးချက်'}
+              </span>
+              <p className="mt-0.5">
+                {lang === 'en' 
+                  ? "Since you are viewing inside an iframe, Google popup authentication may get blocked. For the best experience, click 'Open in New Tab' at the top right, or use Guest Mode." 
+                  : "ဤ app ကို iframe အတွင်း ကြည့်ရှုနေသောကြောင့် Google Sign-in popup ကို browser မှ ပိတ်ထားနိုင်ပါသည်။ အဆင်ပြေပြေ သုံးနိုင်ရန် ညာဘက်အပေါ်ထောင့်ရှိ 'Open in New Tab' ကို နှိပ်၍သော်လည်းကောင်း၊ Guest Mode ဖြင့်သော်လည်းကောင်း ဆောင်ရွက်ပါ။"
+                }
+              </p>
+            </div>
+          </div>
+        )}
 
         {/* GOOGLE AUTHENTICATION BUTTON - Now Primary Action */}
         <div className="flex flex-col gap-4">
