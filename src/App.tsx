@@ -393,7 +393,7 @@ export default function App() {
       },
       pointsHistory: [
         {
-          id: `promo_act_${Date.now()}`,
+          id: `promo_act_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
           date: today,
           type: 'BONUS_REWARD' as const,
           description: `⚡ Activated Promotion Trials to ${promo.targetTier}! The 3-day challenge starts tomorrow (${startDate}). Get ready!`,
@@ -559,7 +559,7 @@ export default function App() {
     unit?: string
   ) => {
     const newHabit: Habit = {
-      id: `habit_${Date.now()}`,
+      id: `habit_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
       name,
       category,
       frequency,
@@ -651,7 +651,7 @@ export default function App() {
               promotion: newPromoState,
               pointsHistory: [
                 {
-                  id: `earn_${Date.now()}_${habit.id}`,
+                  id: `earn_${Date.now()}_${Math.random().toString(36).substring(2, 9)}_${habit.id}`,
                   date: date,
                   type: 'HABIT_COMPLETE',
                   description: rewardDescription,
@@ -698,7 +698,7 @@ export default function App() {
               promotion: newPromoState,
               pointsHistory: [
                 {
-                  id: `uncheck_${Date.now()}_${habit.id}`,
+                  id: `uncheck_${Date.now()}_${Math.random().toString(36).substring(2, 9)}_${habit.id}`,
                   date: date,
                   type: 'HABIT_MISS',
                   description,
@@ -778,7 +778,7 @@ export default function App() {
                 promotion: newPromoState,
                 pointsHistory: [
                   {
-                    id: `earn_${Date.now()}_${habit.id}`,
+                    id: `earn_${Date.now()}_${Math.random().toString(36).substring(2, 9)}_${habit.id}`,
                     date: date,
                     type: 'HABIT_COMPLETE',
                     description: rewardDescription,
@@ -819,7 +819,7 @@ export default function App() {
                 promotion: newPromoState,
                 pointsHistory: [
                   {
-                    id: `loss_${Date.now()}_${habit.id}`,
+                    id: `loss_${Date.now()}_${Math.random().toString(36).substring(2, 9)}_${habit.id}`,
                     date: date,
                     type: 'HABIT_MISS',
                     description: `Reduced Progress below Target: ${habit.name} (${value}/${target} ${habit.unit ?? ''}) (-${pointsToDeduct} pts)`,
@@ -877,7 +877,7 @@ export default function App() {
             totalEarnedPoints += pointsAwarded;
             
             newPointsHistory.push({
-              id: `earn_afk_${Date.now()}_${habit.id}`,
+              id: `earn_afk_${Date.now()}_${Math.random().toString(36).substring(2, 9)}_${habit.id}`,
               date: targetDate,
               type: 'HABIT_COMPLETE' as const,
               description: `Completed (AFK Retroactive): ${habit.name} (+${pointsAwarded} pts - ${Math.round(multiplier * 100)}% reward applied)`,
@@ -900,7 +900,7 @@ export default function App() {
       
       // Add flat penalty history
       newPointsHistory.push({
-        id: `afk_penalty_${Date.now()}`,
+        id: `afk_penalty_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
         date: targetDate,
         type: 'HABIT_MISS' as const,
         description: `AFK Penalty (Day ${targetDate}) - Consecutive AFK #${nextConsecutive} (-${flatPenalty} pts)`,
@@ -984,7 +984,7 @@ export default function App() {
         lastActiveDate: nextUnmarked ? prev.lastActiveDate : getAdjustedTodayDateString(prev.timezoneOffset ?? 6.5, prev.nightOwlOffset ?? 0),
         pointsHistory: [
           {
-            id: `zero_active_${Date.now()}`,
+            id: `zero_active_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
             date: targetDate,
             type: 'HABIT_MISS' as const,
             description: `Locked Zero-Progress Day ${targetDate}. All habits marked incomplete, standard miss penalties applied.`,
@@ -1023,7 +1023,7 @@ export default function App() {
     const payout = Math.round(customPayout || (wager * (1 + (growthRequired * leverage) / 100)));
 
     const newPrediction = {
-      id: `pred_${Date.now()}`,
+      id: `pred_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
       entryDate: today,
       targetDate,
       entryIndexPrice: currentIndexPrice,
@@ -1057,7 +1057,7 @@ export default function App() {
         predictions: [newPrediction, ...(prev.predictions || [])],
         pointsHistory: [
           {
-            id: `pred_wager_${Date.now()}`,
+            id: `pred_wager_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
             date: today,
             type: 'PREDICTION_WAGER',
             description: `Wagered ${wager} points with ${leverage}x leverage on +${growthRequired}% Index Growth prediction (${durationDays} days). Potential Payout: +${payout} PTS.`,
@@ -1091,7 +1091,7 @@ export default function App() {
 
     const shares = capitalToInvest / currentIndexPrice;
     const newPosition: PaperTradePosition = {
-      id: `pos_${Date.now()}`,
+      id: `pos_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
       date: today,
       type,
       entryPrice: currentIndexPrice,

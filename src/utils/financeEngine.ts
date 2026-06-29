@@ -765,7 +765,7 @@ export function auditPromotionState(
       const penalty = 50;
       totalPoints = Math.max(0, config.totalPoints - penalty);
       pointsHistory.unshift({
-        id: `promo_fail_${Date.now()}`,
+        id: `promo_fail_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
         date: today,
         type: 'HABIT_MISS' as const,
         description: `❌ Promotion Trials to ${promo.targetTier} Failed. You did not meet the 75% consistency requirement. Penalty: -${penalty} PTS.`,
@@ -779,7 +779,7 @@ export function auditPromotionState(
         const bonus = 100;
         totalPoints = config.totalPoints + bonus; // promoted successfully!
         pointsHistory.unshift({
-          id: `promo_success_${Date.now()}`,
+          id: `promo_success_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
           date: today,
           type: 'BONUS_REWARD' as const,
           description: `👑 Rank Promotion Match Successful! Promoted to ${promo.targetTier}! Awarded +${bonus} PTS Champion bonus!`,

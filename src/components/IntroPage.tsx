@@ -48,6 +48,7 @@ export default function IntroPage({
   const lang = propLang || localLang;
   const setLang = propSetLang || setLocalLang;
   const [activeFeatureTab, setActiveFeatureTab] = useState<'chart' | 'predictions' | 'rankings' | 'schedule'>('chart');
+  const [showFeatureCatalog, setShowFeatureCatalog] = useState(false);
   
   // Showcase all available ranks dynamically
   const showcasePoints = [0, 600, 2000, 3500, 6000, 9000, 13000];
@@ -301,7 +302,7 @@ export default function IntroPage({
 
         <motion.div 
           variants={heroChildVariants}
-          className="flex flex-col sm:flex-row items-center gap-3 sm:gap-4 mt-2 sm:mt-4 w-full sm:w-auto px-4 sm:px-0"
+          className="flex flex-col sm:flex-row flex-wrap justify-center items-center gap-3 sm:gap-4 mt-2 sm:mt-4 w-full sm:w-auto px-4 sm:px-0"
         >
           <motion.button
             whileHover={{ scale: 1.04 }}
@@ -324,6 +325,16 @@ export default function IntroPage({
             {t.startBtn}
           </motion.button>
           
+          <motion.button
+            whileHover={{ scale: 1.04 }}
+            whileTap={{ scale: 0.98 }}
+            onClick={() => setShowFeatureCatalog(true)}
+            className="w-full sm:w-auto px-6 py-3.5 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white font-black text-xs uppercase tracking-wider rounded-xl transition-all text-center cursor-pointer flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(139,92,246,0.25)] hover:shadow-[0_0_25px_rgba(139,92,246,0.4)] border border-violet-500/30"
+          >
+            <Sparkles className="w-3.5 h-3.5 text-amber-300 animate-pulse" />
+            <span>{lang === 'en' ? 'See More... + Features' : 'ဆန်းသစ်သော Features အစုံကြည့်ရန်... +'}</span>
+          </motion.button>
+
           <motion.a
             whileHover={{ scale: 1.04 }}
             whileTap={{ scale: 0.98 }}
@@ -932,6 +943,233 @@ export default function IntroPage({
           {t.footerTxt}
         </p>
       </footer>
+
+      {/* FULL FEATURE CATALOG HOLOGRAM MODAL */}
+      <AnimatePresence>
+        {showFeatureCatalog && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 bg-slate-950/96 backdrop-blur-2xl overflow-y-auto p-4 sm:p-6 md:p-10 flex items-start justify-center"
+          >
+            {/* AMBIENT GLOWS INSIDE MODAL */}
+            <div className="absolute top-1/4 left-1/4 w-[300px] h-[300px] bg-violet-600/10 rounded-full blur-[100px] pointer-events-none"></div>
+            <div className="absolute bottom-1/4 right-1/4 w-[300px] h-[300px] bg-emerald-600/10 rounded-full blur-[100px] pointer-events-none"></div>
+
+            <motion.div 
+              initial={{ scale: 0.95, y: 30 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.95, y: 30 }}
+              transition={{ type: "spring", stiffness: 200, damping: 20 }}
+              className="relative bg-slate-900/60 border border-slate-800/80 backdrop-blur-md rounded-3xl max-w-6xl w-full p-6 sm:p-8 flex flex-col gap-6 md:gap-8 shadow-2xl mt-4 mb-4"
+            >
+              {/* Header */}
+              <div className="flex items-center justify-between border-b border-slate-800 pb-4">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-xl bg-gradient-to-tr from-violet-500/20 to-purple-500/10 border border-violet-500/30">
+                    <Sparkles className="w-5 h-5 text-violet-400 animate-pulse" />
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="text-[9px] font-mono text-violet-400 uppercase tracking-widest font-black">SYSTEM OPERATIONS</span>
+                    <h3 className="font-sans font-black text-white text-base sm:text-xl uppercase tracking-tight">
+                      {lang === 'en' ? 'Ultimate Feature Catalog' : 'စနစ်တစ်ခုလုံး၏ Features လမ်းညွှန်ချက်'}
+                    </h3>
+                  </div>
+                </div>
+
+                <button 
+                  onClick={() => setShowFeatureCatalog(false)}
+                  className="p-2 bg-slate-950/60 hover:bg-slate-850/80 text-slate-400 hover:text-white border border-slate-800/80 hover:border-slate-750 rounded-xl transition-all cursor-pointer group"
+                >
+                  <X className="w-4 h-4 transition-transform group-hover:rotate-90 duration-200 text-violet-400" />
+                </button>
+              </div>
+
+              {/* Subheading / App overview */}
+              <div className="bg-slate-950/40 border border-slate-800/40 p-4 rounded-2xl flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div className="flex flex-col gap-1">
+                  <span className="text-white font-sans font-bold text-xs">
+                    {lang === 'en' ? 'BET ON ME OPERATING PROTOCOL' : 'Bet On Me ၏ စနစ်လည်ပတ်ပုံ စံနှုန်းများ'}
+                  </span>
+                  <p className="text-slate-400 text-[11px] leading-relaxed max-w-3xl">
+                    {lang === 'en' 
+                      ? 'Welcome to the complete documentation of your habit assets terminal. Every component is mathematically engineered to align your personal incentives with absolute self-sovereign accountability. Explore the modules below.' 
+                      : 'သင်၏ အလေ့အကျင့်ပိုင်ဆိုင်မှု terminal မှ ကြိုဆိုပါသည်! ဤစနစ်၏ module တစ်ခုချင်းစီကို မိမိကိုယ်ကိုယ် အုပ်စိုးမှုနှင့် စိတ်ဓာတ်ခွန်အား အပြည့်အဝရရှိစေရန် အထူးသင်္ချာစနစ်ပုံစံများဖြင့် ဖန်တီးထားပါသည်။'}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2 shrink-0 bg-slate-900 border border-slate-800 px-3 py-1.5 rounded-xl text-[10px] font-mono text-emerald-400">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                  <span>ALL ENGINES ONLINE</span>
+                </div>
+              </div>
+
+              {/* Grid of 8 Features */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-5">
+                {[
+                  {
+                    num: "01",
+                    icon: LineChart,
+                    color: "from-emerald-500/20 to-teal-500/10 border-emerald-500/30 text-emerald-400",
+                    hoverColor: "hover:border-emerald-500/40 hover:shadow-[0_10px_25px_-10px_rgba(16,185,129,0.15)]",
+                    titleEn: "Candlestick Charting",
+                    titleMy: "အလေ့အကျင့် Candlestick ဇယားများ",
+                    descEn: "Your daily consistency forms high-fidelity financial candlesticks (Open, High, Low, Close). Completion patterns form a green bullish rise; missed habits trigger bearish red gap down. Live SMAs (5 & 10-day) automatically map rolling health index values.",
+                    descMy: "နေ့စဉ် check-in များကို တကယ့်စတော့ရှယ်ယာဖယောင်းတိုင် (Candlestick) ပုံစံဖြင့် လှပစွာ ဖော်ဆောင်ပေးသည်။ Habits ပြီးမြောက်လျှင် Bullish ဖယောင်းတိုင် အစိမ်းရောင်၊ ပျက်ကွက်လျှင် Bearish အနီရောင်ဖြင့် ပြသပြီး (၅ ရက်နှင့် ၁၀ ရက်) Moving Average (SMA) လိုင်းများ ပါဝင်သည်။",
+                    stat: "SMA 5 / 10 • Real-time Candles"
+                  },
+                  {
+                    num: "02",
+                    icon: Coins,
+                    color: "from-amber-500/20 to-orange-500/10 border-amber-500/30 text-amber-400",
+                    hoverColor: "hover:border-amber-500/40 hover:shadow-[0_10px_25px_-10px_rgba(245,158,11,0.15)]",
+                    titleEn: "Leveraged Predictions",
+                    titleMy: "ခန့်မှန်းချက်နှင့် Leverage စနစ်",
+                    descEn: "Stake your points as collateral and place leveraged wagers (up to 15x leverage) on your 1, 3, or 7-day habit growth predictions. Meeting your consistency threshold multiplies your portfolio value, while failure triggers severe point liquidations.",
+                    descMy: "ရမှတ်များကို သုံးပြီး ၁ ရက်၊ ၃ ရက် သို့မဟုတ် ၇ ရက် အလေ့အကျင့် တိုးတက်မှုအညွှန်းကိန်းကို (အမြင့်ဆုံး 15x Leverage အထိ) ရွေးချယ်ပြီး လောင်းကြေးထပ်နိုင်သည်။ သတ်မှတ် target ပြည့်မီပါက ရမှတ်များစွာ တိုးပွားပြီး၊ ပျက်ကွက်ပါက Liquidation Penalty ကြုံတွေ့ရမည်။",
+                    stat: "Max 15x Leverage • Liquidation Risk"
+                  },
+                  {
+                    num: "03",
+                    icon: Award,
+                    color: "from-violet-500/20 to-purple-500/10 border-violet-500/30 text-violet-400",
+                    hoverColor: "hover:border-violet-500/40 hover:shadow-[0_10px_25px_-10px_rgba(139,92,246,0.15)]",
+                    titleEn: "PUBG-Style Rank System",
+                    titleMy: "Seasonal Rankings အဆင့်များ",
+                    descEn: "Compete through seasonal tiers (Bronze to Conqueror). Higher tiers unlock higher staking maximums and leverage limits, but demand intense discipline with up to 150% scaled miss penalty rates to enforce high-status standards.",
+                    descMy: "Bronze မှစ၍ အမြင့်ဆုံး Conqueror အဆင့်ထိ PUBG ဂိမ်းပုံစံ တန်းစီဇယားစနစ်ဖြစ်သည်။ အဆင့်မြင့်လေ လောင်းကြေးပိုထပ်နိုင်ပြီး Leverage ပိုသုံးနိုင်သော်လည်း၊ Habits များ ပျက်ကွက်ပါက အမြင့်ဆုံး 1.5x အထိ ပိုမိုကြီးမားသော Penalty ခံရမည့်စနစ်ဖြစ်သည်။",
+                    stat: "7 Tiers • Bronze to Conqueror"
+                  },
+                  {
+                    num: "04",
+                    icon: Activity,
+                    color: "from-pink-500/20 to-rose-500/10 border-pink-500/30 text-pink-400",
+                    hoverColor: "hover:border-pink-500/40 hover:shadow-[0_10px_25px_-10px_rgba(236,72,153,0.15)]",
+                    titleEn: "Retro & AFK Penalties",
+                    titleMy: "retro log နှင့် AFK ဒဏ်ကြေးများ",
+                    descEn: "Away From Keyboard detector guards against complete abandonment. Backfilling checks for missed days is allowed with retroactive points dampening (up to 40% loss), but persistent inactivity locks days with severe consecutive AFK penalties.",
+                    descMy: "စနစ်တကျ မှတ်တမ်းမတင်ဘဲ ပစ်ထားခြင်းကို ကာကွယ်ရန် AFK Penalty ပါဝင်သည်။ နောက်ကျမှ ပြန်ပြီး retroactive check-in လုပ်လျှင် ရရှိမည့်ရမှတ် လျော့နည်းစေကာ၊ လုံးဝမမှတ်တမ်းတင်ပါက ရက်ဆက်အလိုက် ပိုမိုပြင်းထန်သော ဒဏ်ကြေးများကို နုတ်ယူသည်။",
+                    stat: "Retro Points Loss • Day Auto-Lock"
+                  },
+                  {
+                    num: "05",
+                    icon: Clock,
+                    color: "from-cyan-500/20 to-blue-500/10 border-cyan-500/30 text-cyan-400",
+                    hoverColor: "hover:border-cyan-500/40 hover:shadow-[0_10px_25px_-10px_rgba(6,182,212,0.15)]",
+                    titleEn: "Flexible Schedules & Owl",
+                    titleMy: "ညဥ့်နက်သူနှင့် Flexible Calendar",
+                    descEn: "Designed for modern living. Configure 'Night Owl' offsets (up to 4:00 AM) so late-night check-ins count toward yesterday's index. Set selective active days per habit and use Weekend Grace modes to keep consistency streaks alive on rest days.",
+                    descMy: "ညဥ့်နက်မှ အိပ်တတ်သူများအတွက် နေ့သစ်သတ်မှတ်ချိန်ကို မနက် ၄:၀၀ နာရီအထိ ရွှေ့ဆိုင်းနိုင်သည့် Night Owl Offset ပါဝင်သည်။ Habits တစ်ခုချင်းစီအလိုက် selective ရက်ရွေးချယ်နိုင်ပြီး ပိတ်ရက်များတွင် Streak မပျက်စေရန် Weekend grace mode များ ပါဝင်သည်။",
+                    stat: "Grace to 4:00 AM • Custom Active Days"
+                  },
+                  {
+                    num: "06",
+                    icon: BarChart3,
+                    color: "from-sky-500/20 to-cyan-500/10 border-sky-500/30 text-sky-400",
+                    hoverColor: "hover:border-sky-500/40 hover:shadow-[0_10px_25px_-10px_rgba(14,165,233,0.15)]",
+                    titleEn: "Report & Analytics Hub",
+                    titleMy: "ခွဲခြမ်းစိတ်ဖြာချက် Hub အစီရင်ခံစာ",
+                    descEn: "Unlock professional visualization. Features GitHub-style check-in calendar heatmaps, rolling points averages, period-over-period consistency analytics (comparing this week with last week), and automated psychological self-audit diagnostics.",
+                    descMy: "ရမှတ်ကြီးထွားမှု၊ check-in ပြုလုပ်ခဲ့မှု Heatmap (GitHub Grid ပုံစံ)၊ အောင်မြင်မှုရာခိုင်နှုန်းများနှင့် ယခင်အပတ်နှိုင်းယှဉ်ချက်များကို စနစ်တကျ လေ့လာသုံးသပ်ပြသပေးသည့် Professional Analytics Control Room ဖြစ်သည်။",
+                    stat: "heatmap Grid • WoW Comparisons"
+                  },
+                  {
+                    num: "07",
+                    icon: Shield,
+                    color: "from-indigo-500/20 to-blue-500/10 border-indigo-500/30 text-indigo-400",
+                    hoverColor: "hover:border-indigo-500/40 hover:shadow-[0_10px_25px_-10px_rgba(99,102,241,0.15)]",
+                    titleEn: "Cloud Sync & Leaderboard",
+                    titleMy: "Cloud database နှင့် Leaderboard",
+                    descEn: "Instant background Cloud Firestore backups synchronize your checkpoints, history transactions, and habit asset states. Unlocks competitive leaderboards where you sign a unique integrity covenant, keeping competition authentic.",
+                    descMy: "Cloud Firestore နည်းပညာဖြင့် သင့်အကောင့်ထဲရှိ Data အားလုံးကို real-time အလိုအလျောက် သိမ်းဆည်းပေးသည်။ လိမ်ညာခြင်းမရှိဘဲ ရိုးသားစွာ ယှဉ်ပြိုင်မည်ဟူသော ကတိကဝတ်ပြုပြီးမှ ဝင်ရောက်ရသည့် Live Leaderboard ပါဝင်သည်။",
+                    stat: "Firestore Sync • Integrity Covenant"
+                  },
+                  {
+                    num: "08",
+                    icon: Target,
+                    color: "from-yellow-500/20 to-amber-500/10 border-yellow-500/30 text-yellow-400",
+                    hoverColor: "hover:border-yellow-500/40 hover:shadow-[0_10px_25px_-10px_rgba(234,179,8,0.15)]",
+                    titleEn: "Habit Asset Manager",
+                    titleMy: "အလေ့အကျင့် Asset စီမံခန့်ခွဲမှု",
+                    descEn: "Organize habits into structured financial categories: Fitness, Mindset, Intellect, or Finance. Custom weights (up to 2.5x multipliers) can be assigned, treating high-priority activities as heavy equity-holding capital assets.",
+                    descMy: "သင်၏အလေ့အကျင့်များကို Fitness, Mindset, Intellect သို့မဟုတ် Finance ဟူ၍ စနစ်တကျ ကဏ္ဍခွဲနိုင်သည်။ ပိုမိုအရေးကြီးသော အလေ့အကျင့်များကို Weight (အမြင့်ဆုံး 2.5x အထိ) မြှင့်တင်နိုင်ပြီး Points ပိုမိုရရှိရန် စီမံနိုင်သည်။",
+                    stat: "Custom Weight (0.1x - 2.5x) • Categories"
+                  }
+                ].map((feat) => {
+                  const Icon = feat.icon;
+                  return (
+                    <motion.div 
+                      key={feat.num}
+                      whileHover={{ y: -6, scale: 1.02 }}
+                      className={`bg-slate-950/45 border border-slate-850/70 p-5 rounded-2xl flex flex-col justify-between gap-4 transition-all duration-200 relative overflow-hidden group ${feat.hoverColor}`}
+                    >
+                      {/* Num indicator */}
+                      <span className="absolute -top-3 -right-2 text-4xl font-black font-mono text-slate-850/15 group-hover:text-slate-850/25 select-none transition-colors">{feat.num}</span>
+
+                      <div className="flex flex-col gap-3">
+                        <div className={`p-2.5 bg-gradient-to-tr ${feat.color} rounded-xl w-fit group-hover:scale-110 transition-transform duration-200`}>
+                          <Icon className="w-5 h-5" />
+                        </div>
+
+                        <div className="flex flex-col gap-1 mt-1">
+                          <h4 className="text-white font-sans font-black text-xs uppercase tracking-wide">
+                            {feat.titleEn}
+                          </h4>
+                          <span className="text-[10px] text-slate-400 font-semibold leading-none">
+                            {feat.titleMy}
+                          </span>
+                        </div>
+
+                        <div className="flex flex-col gap-2 mt-1 border-t border-slate-900 pt-2.5">
+                          {/* English short summary */}
+                          <p className="text-[11px] text-slate-300 leading-relaxed font-sans line-clamp-3 group-hover:line-clamp-none transition-all">
+                            {lang === 'en' ? feat.descEn : feat.descMy}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex justify-between items-center bg-slate-900/40 border border-slate-850/50 px-2.5 py-1.5 rounded-lg text-[9px] font-mono text-slate-500 mt-2">
+                        <span className="font-semibold uppercase tracking-wider text-[8px] text-slate-400">Specs</span>
+                        <span className="font-extrabold text-slate-300">{feat.stat}</span>
+                      </div>
+                    </motion.div>
+                  );
+                })}
+              </div>
+
+              {/* Action and bottom close */}
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-slate-800/80 pt-6">
+                <span className="text-[10px] text-slate-500 font-mono tracking-wider">
+                  Bet On Me Habit Asset Terminal • High-Fidelity Systems Document
+                </span>
+
+                <div className="flex items-center gap-3 w-full sm:w-auto">
+                  <button 
+                    onClick={() => setShowFeatureCatalog(false)}
+                    className="w-full sm:w-auto px-5 py-2.5 bg-slate-950 hover:bg-slate-850 text-slate-400 hover:text-white text-xs font-bold uppercase tracking-wider rounded-xl transition-all border border-slate-800 hover:border-slate-700 cursor-pointer text-center"
+                  >
+                    {lang === 'en' ? 'Close Manual' : 'လမ်းညွှန် ပိတ်မည်'}
+                  </button>
+
+                  <button 
+                    onClick={() => {
+                      setShowFeatureCatalog(false);
+                      if (currentUser || isGuestMode) {
+                        onClose();
+                      } else {
+                        onNavigateToAuth();
+                      }
+                    }}
+                    className="w-full sm:w-auto px-6 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-black text-xs uppercase tracking-wider rounded-xl transition-all shadow-[0_0_15px_rgba(16,185,129,0.3)] hover:shadow-[0_0_20px_rgba(16,185,129,0.5)] cursor-pointer text-center"
+                  >
+                    {lang === 'en' ? 'Boot Terminal Now' : 'စတင်အသုံးပြုမည်'}
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
