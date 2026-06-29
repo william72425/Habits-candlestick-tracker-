@@ -52,10 +52,58 @@ if (customDbId) {
 
 export const db = getFirestore(app, databaseId);
 
+export enum OperationType {
+  CREATE = 'create',
+  UPDATE = 'update',
+  DELETE = 'delete',
+  LIST = 'list',
+  GET = 'get',
+  WRITE = 'write',
+}
+
+interface FirestoreErrorInfo {
+  error: string;
+  operationType: OperationType;
+  path: string | null;
+  authInfo: {
+    userId?: string | null;
+    email?: string | null;
+    emailVerified?: boolean | null;
+    isAnonymous?: boolean | null;
+    tenantId?: string | null;
+    providerInfo?: {
+      providerId?: string | null;
+      email?: string | null;
+    }[];
+  }
+}
+
+export function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
+  const errInfo: FirestoreErrorInfo = {
+    error: error instanceof Error ? error.message : String(error),
+    authInfo: {
+      userId: auth.currentUser?.uid,
+      email: auth.currentUser?.email,
+      emailVerified: auth.currentUser?.emailVerified,
+      isAnonymous: auth.currentUser?.isAnonymous,
+      tenantId: auth.currentUser?.tenantId,
+      providerInfo: auth.currentUser?.providerData?.map(provider => ({
+        providerId: provider.providerId,
+        email: provider.email,
+      })) || []
+    },
+    operationType,
+    path
+  };
+  console.error('Firestore Error: ', JSON.stringify(errInfo));
+  throw new Error(JSON.stringify(errInfo));
+}
+
 /**
  * Saves habit records and configurations of the authenticated user to Firestore.
  */
 export async function saveUserData(uid: string, habits: Habit[], config: UserTerminalConfig) {
+  const path = `users/${uid}`;
   try {
     const userDocRef = doc(db, 'users', uid);
     await setDoc(userDocRef, {
@@ -64,7 +112,7 @@ export async function saveUserData(uid: string, habits: Habit[], config: UserTer
       updatedAt: new Date().toISOString()
     }, { merge: true });
   } catch (error) {
-    console.error("Error saving user data to Firestore:", error);
+    handleFirestoreError(error, OperationType.WRITE, path);
   }
 }
 
@@ -72,6 +120,7 @@ export async function saveUserData(uid: string, habits: Habit[], config: UserTer
  * Loads habit records and configurations of the authenticated user from Firestore.
  */
 export async function loadUserData(uid: string): Promise<{ habits: Habit[], config: UserTerminalConfig } | null> {
+  const path = `users/${uid}`;
   try {
     const userDocRef = doc(db, 'users', uid);
     const docSnap = await getDoc(userDocRef);
@@ -83,7 +132,7 @@ export async function loadUserData(uid: string): Promise<{ habits: Habit[], conf
       };
     }
   } catch (error) {
-    console.error("Error loading user data from Firestore:", error);
+    handleFirestoreError(error, OperationType.GET, path);
   }
   return null;
 }

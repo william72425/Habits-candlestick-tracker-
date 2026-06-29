@@ -1,0 +1,34 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User custom habit tracker config and logs",
+      "type": "object",
+      "properties": {
+        "habits": {
+          "type": "array",
+          "description": "User's habit tracking records"
+        },
+        "config": {
+          "type": "object",
+          "description": "User terminal config and state"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Last updated timestamp"
+        }
+      },
+      "required": [
+        "habits",
+        "config"
+      ]
+    }
+  },
+  "firestore": {
+    "users/{userId}": {
+      "schema": "User",
+      "description": "Collection of user-specific data including habits and config"
+    }
+  }
+}

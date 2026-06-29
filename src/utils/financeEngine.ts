@@ -150,9 +150,11 @@ export function getWeeklyConsistency(habits: Habit[], todayStr: string): number 
     const activeHabits = habits.filter(h => h.createdDate <= date && (!h.archived || !h.archivedDate || h.archivedDate > date));
     
     activeHabits.forEach(habit => {
-      totalOpportunities++;
-      if (habit.history[date] === true) {
-        totalCompletions++;
+      if (isHabitActiveOnDate(habit, date)) {
+        totalOpportunities++;
+        if (habit.history[date] === true) {
+          totalCompletions++;
+        }
       }
     });
   }
@@ -513,15 +515,18 @@ export function calculateMetrics(habits: Habit[], dailyCandles: Candle[]): Dashb
   let totalCompletions = 0;
 
   habits.forEach((habit) => {
-    // Opportunities = days from habit.createdDate to today
-    const dates = getDatesInRange(habit.createdDate, today);
-    totalOpportunities += dates.length;
-
-    // Completions = occurrences of 'true' in history
-    Object.keys(habit.history).forEach((date) => {
-      // Only count if it falls within tracking range and is true
-      if (date >= habit.createdDate && date <= today && habit.history[date] === true) {
-        totalCompletions += 1;
+    // If a habit is archived, we only count opportunities up to its archivedDate
+    const endLimit = (habit.archived && habit.archivedDate && habit.archivedDate < today) 
+      ? habit.archivedDate 
+      : today;
+    const dates = getDatesInRange(habit.createdDate, endLimit);
+    
+    dates.forEach((date) => {
+      if (isHabitActiveOnDate(habit, date)) {
+        totalOpportunities += 1;
+        if (habit.history[date] === true) {
+          totalCompletions += 1;
+        }
       }
     });
   });
