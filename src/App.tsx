@@ -267,31 +267,19 @@ export default function App() {
     return () => unsubscribe();
   }, []);
 
-  // 2. Persist State Changes to LocalStorage and Firebase Firestore
+  // 2. Unified State Synchronization to LocalStorage and Firebase Firestore
   useEffect(() => {
     if (!appInitialized) return;
     try {
       localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(habits));
-      if (currentUser && isCloudLoadComplete) {
-        saveUserData(currentUser.uid, habits, config);
-      }
-    } catch (e) {
-      console.error('Error saving habits state:', e);
-    }
-  }, [habits, appInitialized, currentUser, isCloudLoadComplete]);
-
-  // 3. Persist Config Changes to LocalStorage and Firebase Firestore
-  useEffect(() => {
-    if (!appInitialized) return;
-    try {
       localStorage.setItem(LOCAL_STORAGE_KEY_CONFIG, JSON.stringify(config));
       if (currentUser && isCloudLoadComplete) {
         saveUserData(currentUser.uid, habits, config);
       }
     } catch (e) {
-      console.error('Error saving config state:', e);
+      console.error('Error syncing user data to storage/cloud:', e);
     }
-  }, [config, appInitialized, currentUser, isCloudLoadComplete]);
+  }, [habits, config, appInitialized, currentUser, isCloudLoadComplete]);
 
   const [unmarkedDayToReconcile, setUnmarkedDayToReconcile] = useState<string | null>(null);
   const [afkCheckedHabits, setAfkCheckedHabits] = useState<Record<string, boolean>>({});
