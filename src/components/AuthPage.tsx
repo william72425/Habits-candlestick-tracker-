@@ -2,22 +2,15 @@ import React, { useState } from 'react';
 import { 
   auth, 
   googleProvider, 
-  signInWithPopup, 
-  signInWithEmailAndPassword, 
-  createUserWithEmailAndPassword 
+  signInWithPopup 
 } from '../utils/firebase';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
-  Mail, 
-  Lock, 
   Chrome, 
-  ArrowRight, 
   Sparkles, 
   ShieldAlert, 
   CheckCircle2, 
   Loader2, 
-  Eye, 
-  EyeOff, 
   Terminal,
   Globe,
   User,
@@ -40,12 +33,6 @@ export default function AuthPage({
   lang: propLang,
   setLang: propSetLang
 }: AuthPageProps) {
-  const [isSignUp, setIsSignUp] = useState<boolean>(false);
-  const [email, setEmail] = useState<string>('');
-  const [password, setPassword] = useState<string>('');
-  const [confirmPassword, setConfirmPassword] = useState<string>('');
-  const [showPassword, setShowPassword] = useState<boolean>(false);
-  
   // States for error/success/loading feedback
   const [loading, setLoading] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<{ en: string; my: string } | null>(null);
@@ -57,80 +44,6 @@ export default function AuthPage({
   const setLang = propSetLang || setLocalLang;
 
   const t = AUTH_LOCALIZATION[lang];
-
-  // Handle standard auth error parsing to show neat Burmese + English alerts
-  const handleAuthError = (err: any) => {
-    console.error(err);
-    const code = err.code || "";
-    if (code === "auth/invalid-credential" || code === "auth/wrong-password" || code === "auth/user-not-found") {
-      setErrorMessage({
-        en: "Invalid email or password. Please verify your credentials.",
-        my: "အီးမေးလ် သို့မဟုတ် လျှို့ဝှက်နံပါတ် မှားယွင်းနေပါသည်။ ပြန်လည်စစ်ဆေးပေးပါ။"
-      });
-    } else if (code === "auth/email-already-in-use") {
-      setErrorMessage({
-        en: "This email is already associated with an active terminal.",
-        my: "ဤအီးမေးလ်ဖြင့် အကောင့်ဖွင့်ထားပြီး ဖြစ်ပါသည်။"
-      });
-    } else if (code === "auth/invalid-email") {
-      setErrorMessage({
-        en: "The email format is invalid.",
-        my: "အီးမေးလ် ပုံစံ မှားယွင်းနေပါသည်။"
-      });
-    } else if (code === "auth/weak-password") {
-      setErrorMessage({
-        en: "Password must be at least 6 characters.",
-        my: "လျှို့ဝှက်နံပါတ်သည် အနည်းဆုံး စာလုံး ၆ လုံး ဖြစ်ရပါမည်။"
-      });
-    } else {
-      setErrorMessage({
-        en: err.message || "An unexpected network error occurred.",
-        my: "ကွန်ရက်ချိတ်ဆက်မှု အခက်အခဲရှိနေပါသည်။ ပြန်လည်ကြိုးစားပေးပါ။"
-      });
-    }
-  };
-
-  // Submit Authentication Form
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setErrorMessage(null);
-    setSuccessMessage(null);
-
-    // Frontend Validations
-    if (!email || !email.includes('@')) {
-      setErrorMessage({ en: t.emailRequired, my: t.emailRequired });
-      return;
-    }
-    if (password.length < 6) {
-      setErrorMessage({ en: t.passwordTooShort, my: t.passwordTooShort });
-      return;
-    }
-    if (isSignUp && password !== confirmPassword) {
-      setErrorMessage({ en: t.passwordMismatch, my: t.passwordMismatch });
-      return;
-    }
-
-    setLoading(true);
-    try {
-      if (isSignUp) {
-        await createUserWithEmailAndPassword(auth, email, password);
-        setSuccessMessage({ en: t.successSignUp, my: t.successSignUp });
-        setTimeout(() => {
-          onSuccess();
-        }, 1200);
-      } else {
-        await signInWithEmailAndPassword(auth, email, password);
-        setSuccessMessage({ en: t.successSignIn, my: t.successSignIn });
-        setTimeout(() => {
-          onSuccess();
-        }, 1200);
-      }
-    } catch (err: any) {
-      handleAuthError(err);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   // Google Provider Popup Authentication
   const handleGoogleAuth = async () => {
@@ -212,7 +125,7 @@ export default function AuthPage({
         <div className="flex flex-col gap-1.5 text-center sm:text-left mb-6">
           <h2 className="text-white text-xl md:text-2xl font-sans font-black uppercase tracking-tight flex items-center justify-center sm:justify-start gap-2.5">
             <Sparkles className="w-5 h-5 text-amber-400" />
-            {isSignUp ? t.submitBtnSignUp : t.title}
+            {t.title}
           </h2>
           <p className="text-slate-400 text-xs font-medium leading-relaxed max-w-sm mx-auto sm:mx-0">
             {t.subtitle}
@@ -252,119 +165,32 @@ export default function AuthPage({
           )}
         </AnimatePresence>
 
-        {/* MAIN AUTHENTICATION FORM */}
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-          
-          {/* Email field */}
-          <div className="flex flex-col gap-1.5 text-left">
-            <label className="text-[10px] font-mono text-slate-400 font-bold uppercase tracking-wider pl-1 flex items-center gap-1.5">
-              <Mail className="w-3.5 h-3.5 text-teal-400" />
-              {t.emailLabel}
-            </label>
-            <input 
-              type="email"
-              required
-              disabled={loading}
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="operator@discipline.com"
-              className="w-full bg-slate-950/80 border border-slate-800 focus:border-emerald-500 rounded-xl px-4 py-3 text-xs text-white focus:outline-none focus:ring-1 focus:ring-emerald-500 transition-all font-mono"
-            />
-          </div>
-
-          {/* Password field */}
-          <div className="flex flex-col gap-1.5 text-left">
-            <label className="text-[10px] font-mono text-slate-400 font-bold uppercase tracking-wider pl-1 flex items-center justify-between">
-              <span className="flex items-center gap-1.5">
-                <Lock className="w-3.5 h-3.5 text-teal-400" />
-                {t.passwordLabel}
-              </span>
-              <button
-                type="button"
-                onClick={() => setShowPassword(prev => !prev)}
-                className="text-slate-500 hover:text-slate-300 text-[9px] uppercase font-bold cursor-pointer hover:underline"
-              >
-                {showPassword ? <EyeOff className="w-3 h-3 inline mr-1" /> : <Eye className="w-3 h-3 inline mr-1" />}
-                {showPassword ? "Hide" : "Show"}
-              </button>
-            </label>
-            <input 
-              type={showPassword ? "text" : "password"}
-              required
-              disabled={loading}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="••••••••"
-              className="w-full bg-slate-950/80 border border-slate-800 focus:border-emerald-500 rounded-xl px-4 py-3 text-xs text-white focus:outline-none focus:ring-1 focus:ring-emerald-500 transition-all font-mono"
-            />
-          </div>
-
-          {/* Confirm Password (SignUp Only) */}
-          {isSignUp && (
-            <div className="flex flex-col gap-1.5 text-left">
-              <label className="text-[10px] font-mono text-slate-400 font-bold uppercase tracking-wider pl-1 flex items-center gap-1.5">
-                <Lock className="w-3.5 h-3.5 text-amber-400 animate-pulse" />
-                {t.confirmPasswordLabel}
-              </label>
-              <input 
-                type={showPassword ? "text" : "password"}
-                required
-                disabled={loading}
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                placeholder="••••••••"
-                className="w-full bg-slate-950/80 border border-slate-800 focus:border-emerald-500 rounded-xl px-4 py-3 text-xs text-white focus:outline-none focus:ring-1 focus:ring-emerald-500 transition-all font-mono"
-              />
-            </div>
-          )}
-
-          {/* Form Action Submit Button */}
+        {/* GOOGLE AUTHENTICATION BUTTON - Now Primary Action */}
+        <div className="flex flex-col gap-4">
           <motion.button
             whileHover={{ scale: 1.015 }}
             whileTap={{ scale: 0.985 }}
-            type="submit"
+            onClick={handleGoogleAuth}
             disabled={loading}
-            className="w-full mt-2 py-3 px-4 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-black text-xs uppercase tracking-wider rounded-xl transition-all shadow-[0_4px_12px_rgba(16,185,129,0.2)] disabled:opacity-50 cursor-pointer flex items-center justify-center gap-2"
+            type="button"
+            className="w-full py-4 px-4 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs uppercase tracking-widest rounded-xl transition-all shadow-[0_4px_12px_rgba(16,185,129,0.2)] disabled:opacity-50 cursor-pointer flex items-center justify-center gap-3"
           >
             {loading ? (
               <>
                 <Loader2 className="w-4 h-4 animate-spin text-slate-950" />
-                <span className="font-bold">{t.loadingText}</span>
+                <span>{t.loadingText}</span>
               </>
             ) : (
               <>
-                <span className="font-bold">{isSignUp ? t.submitBtnSignUp : t.submitBtnSignIn}</span>
-                <ArrowRight className="w-4 h-4" />
+                <Chrome className="w-4 h-4 text-slate-950" />
+                <span>{t.googleBtn}</span>
               </>
             )}
           </motion.button>
-        </form>
-
-        {/* OR DIVIDER */}
-        <div className="relative flex items-center justify-center my-5">
-          <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-slate-800"></div>
-          </div>
-          <span className="relative px-3 bg-slate-900 text-[8px] font-mono text-slate-500 font-bold tracking-widest uppercase">
-            {t.orDivider}
-          </span>
         </div>
 
-        {/* GOOGLE AUTHENTICATION BUTTON */}
-        <motion.button
-          whileHover={{ scale: 1.015 }}
-          whileTap={{ scale: 0.985 }}
-          onClick={handleGoogleAuth}
-          disabled={loading}
-          type="button"
-          className="w-full py-3 px-4 bg-slate-950 hover:bg-slate-850 border border-slate-800 hover:border-emerald-500/20 text-slate-200 hover:text-white font-bold text-xs uppercase tracking-wider rounded-xl transition-all cursor-pointer flex items-center justify-center gap-2.5"
-        >
-          <Chrome className="w-4 h-4 text-emerald-400" />
-          <span>{t.googleBtn}</span>
-        </motion.button>
-
         {/* BYPASS TO GUEST MODE (LOCAL) */}
-        <div className="mt-5 border-t border-slate-800/60 pt-4 flex flex-col gap-2.5">
+        <div className="mt-6 border-t border-slate-800/60 pt-4 flex flex-col gap-2.5">
           <button 
             type="button"
             onClick={onGuestMode}
@@ -382,21 +208,8 @@ export default function AuthPage({
           </div>
         </div>
 
-        {/* SWITCH TABS (SIGN-IN VS SIGN-UP) */}
-        <div className="mt-6 flex items-center justify-center gap-2 text-xs font-medium border-t border-slate-800/60 pt-4 text-slate-400">
-          <span>{isSignUp ? t.switchTextSignUp : t.switchTextSignIn}</span>
-          <button
-            type="button"
-            onClick={() => setIsSignUp(prev => !prev)}
-            disabled={loading}
-            className="text-emerald-400 hover:text-emerald-300 font-extrabold cursor-pointer hover:underline focus:outline-none"
-          >
-            {isSignUp ? t.switchBtnSignUp : t.switchBtnSignIn}
-          </button>
-        </div>
-
         {/* FOOTER WATERMARK */}
-        <div className="mt-5 text-center">
+        <div className="mt-6 text-center">
           <span className="text-[8px] font-mono text-slate-600 font-bold uppercase tracking-widest">
             {t.by}
           </span>

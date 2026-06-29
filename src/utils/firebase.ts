@@ -35,8 +35,20 @@ export const auth = getAuth(app);
 export const googleProvider = new GoogleAuthProvider();
 
 // Initialize Firestore with custom Database ID or fallback
-const databaseId = (import.meta as any).env.VITE_FIREBASE_DATABASE_ID || "ai-studio-habitcandlestick-e45421b2-ee56-4ecb-8a52-abe0225caf43";
-export const db = getFirestore(app, databaseId === "(default)" ? undefined : databaseId);
+const customDbId = (import.meta as any).env.VITE_FIREBASE_DATABASE_ID;
+const projectId = (import.meta as any).env.VITE_FIREBASE_PROJECT_ID;
+
+// If a custom project ID is provided (e.g. on Vercel) but no database ID is specified,
+// we should default to the "(default)" database since they are using their own Firebase project.
+// Otherwise, if we are in the default AI Studio sandbox project, we use the specific custom database.
+let databaseId: string | undefined = undefined;
+if (customDbId) {
+  databaseId = customDbId === "(default)" ? undefined : customDbId;
+} else if (!projectId || projectId === "gen-lang-client-0786967448") {
+  databaseId = "ai-studio-habitcandlestick-e45421b2-ee56-4ecb-8a52-abe0225caf43";
+}
+
+export const db = getFirestore(app, databaseId);
 
 /**
  * Saves habit records and configurations of the authenticated user to Firestore.

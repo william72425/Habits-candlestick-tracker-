@@ -141,9 +141,17 @@ export default function App() {
         setCurrentUser(user);
         setIsGuestMode(false);
         try {
-          const cloudData = await loadUserData(user.uid);
-          if (cloudData) {
+          // Fetch cloud user document with a 3.5s timeout fallback to avoid long loading screen hangs
+          const result = await Promise.race([
+            loadUserData(user.uid).then(data => ({ data, isTimeout: false })),
+            new Promise<{ data: null; isTimeout: boolean }>((resolve) => 
+              setTimeout(() => resolve({ data: null, isTimeout: true }), 3500)
+            )
+          ]);
+
+          if (result.data) {
             // Document exists - load from cloud
+            const cloudData = result.data;
             if (Array.isArray(cloudData.habits)) {
               setHabits(cloudData.habits);
             } else {
@@ -187,8 +195,12 @@ export default function App() {
 
             setHabits(initialHabits);
             setConfig(initialConfig);
-            // Backup the data immediately to the secure cloud!
-            await saveUserData(user.uid, initialHabits, initialConfig);
+            
+            // Only back up/save to the cloud if this was a legitimate new user signup (no document found),
+            // and NOT a slow network timeout fallback, protecting existing cloud data from getting overwritten!
+            if (!result.isTimeout) {
+              await saveUserData(user.uid, initialHabits, initialConfig);
+            }
           }
         } catch (err) {
           console.error("Error fetching or initializing user document from Firestore:", err);
