@@ -146,11 +146,11 @@ export default function App() {
         setSyncStatus('LOADING');
         setSyncError(null);
         try {
-          // Fetch cloud user document with a 3.5s timeout fallback to avoid long loading screen hangs
+          // Fetch cloud user document with a 7.5s timeout fallback to avoid long loading screen hangs
           const result = await Promise.race([
             loadUserData(user.uid).then(data => ({ data, isTimeout: false })),
             new Promise<{ data: null; isTimeout: boolean }>((resolve) => 
-              setTimeout(() => resolve({ data: null, isTimeout: true }), 3500)
+              setTimeout(() => resolve({ data: null, isTimeout: true }), 7500)
             )
           ]);
 
@@ -321,6 +321,66 @@ export default function App() {
       const msg = err instanceof Error ? err.message : String(err);
       setSyncError(msg);
       alert(`Cloud backup failed:\n${msg}`);
+    }
+  };
+
+  const retryCloudFetch = async () => {
+    if (!currentUser) {
+      alert("You must be logged in to sync with the cloud.");
+      return;
+    }
+    setSyncStatus('LOADING');
+    setSyncError(null);
+    try {
+      // Fetch cloud user document with a longer timeout (10s) since this is a manual retry
+      const result = await Promise.race([
+        loadUserData(currentUser.uid).then(data => ({ data, isTimeout: false })),
+        new Promise<{ data: null; isTimeout: boolean }>((resolve) => 
+          setTimeout(() => resolve({ data: null, isTimeout: true }), 10000)
+        )
+      ]);
+
+      if (result.isTimeout) {
+        throw new Error("Cloud fetch timed out again after 10 seconds. Please check your network connection.");
+      }
+
+      if (result.data) {
+        // Document exists - load from cloud
+        const cloudData = result.data;
+        if (Array.isArray(cloudData.habits)) {
+          setHabits(cloudData.habits);
+        }
+        if (cloudData.config) {
+          setConfig({
+            ...DEFAULT_TERMINAL_CONFIG,
+            ...cloudData.config,
+            predictions: cloudData.config.predictions ?? DEFAULT_TERMINAL_CONFIG.predictions,
+            pointsHistory: cloudData.config.pointsHistory ?? DEFAULT_TERMINAL_CONFIG.pointsHistory,
+            totalPoints: cloudData.config.totalPoints ?? DEFAULT_TERMINAL_CONFIG.totalPoints,
+            timezone: cloudData.config.timezone ?? DEFAULT_TERMINAL_CONFIG.timezone,
+            timezoneOffset: cloudData.config.timezoneOffset ?? DEFAULT_TERMINAL_CONFIG.timezoneOffset,
+            nightOwlOffset: cloudData.config.nightOwlOffset ?? DEFAULT_TERMINAL_CONFIG.nightOwlOffset,
+            lastActiveDate: cloudData.config.lastActiveDate ?? DEFAULT_TERMINAL_CONFIG.lastActiveDate,
+            consecutiveAfkCount: cloudData.config.consecutiveAfkCount ?? DEFAULT_TERMINAL_CONFIG.consecutiveAfkCount,
+            afkHistory: cloudData.config.afkHistory ?? DEFAULT_TERMINAL_CONFIG.afkHistory,
+          });
+        }
+        setIsCloudLoadComplete(true);
+        setSyncStatus('SYNCED');
+        alert("Cloud connection established successfully! Stored user progress loaded.");
+      } else {
+        // New user or empty document - we can safely mark cloud load as complete and save current local progress
+        setIsCloudLoadComplete(true);
+        setSyncStatus('SYNCING');
+        await saveUserData(currentUser.uid, habits, config);
+        setSyncStatus('SYNCED');
+        alert("Cloud connection established! New user document initialized in cloud database.");
+      }
+    } catch (err) {
+      setSyncStatus('ERROR');
+      const msg = err instanceof Error ? err.message : String(err);
+      setSyncError(msg);
+      alert(`Cloud connection failed:\n${msg}`);
     }
   };
 
@@ -1256,8 +1316,14 @@ export default function App() {
           {/* User info capsule */}
           {currentUser ? (
             <button
-              onClick={forceManualSync}
-              title={syncError ? `Sync Error: ${syncError}. Click to retry cloud sync.` : "Cloud Database Sync active. Click to trigger manual sync backup."}
+              onClick={isCloudLoadComplete ? forceManualSync : retryCloudFetch}
+              title={
+                !isCloudLoadComplete
+                  ? "Cloud Connection timed out. Click to retry connecting and fetching your cloud progress."
+                  : syncError 
+                    ? `Sync Error: ${syncError}. Click to retry cloud sync.` 
+                    : "Cloud Database Sync active. Click to trigger manual sync backup."
+              }
               className={`flex items-center gap-2 px-3 py-1 border rounded-xl font-mono text-xs font-semibold cursor-pointer transition-all ${
                 syncStatus === 'SYNCED' 
                   ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/20' 
@@ -1277,7 +1343,7 @@ export default function App() {
               <span>
                 {syncStatus === 'SYNCED' && 'Sync ✅'}
                 {(syncStatus === 'SYNCING' || syncStatus === 'LOADING') && 'Syncing...'}
-                {syncStatus === 'ERROR' && 'Sync ❌'}
+                {syncStatus === 'ERROR' && (!isCloudLoadComplete ? 'Retry 🔄' : 'Sync ❌')}
               </span>
             </button>
           ) : isGuestMode ? (
@@ -1979,11 +2045,15 @@ export default function App() {
                 <div className="flex items-center gap-2 self-end md:self-center">
                   {currentUser && (
                     <button
-                      onClick={forceManualSync}
+                      onClick={isCloudLoadComplete ? forceManualSync : retryCloudFetch}
                       disabled={syncStatus === 'SYNCING' || syncStatus === 'LOADING'}
                       className="px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black rounded-xl text-xs uppercase transition-all cursor-pointer shadow-[0_0_15px_rgba(16,185,129,0.3)] disabled:opacity-50"
                     >
-                      {syncStatus === 'SYNCING' || syncStatus === 'LOADING' ? 'Syncing...' : 'Sync Now 🔄'}
+                      {syncStatus === 'SYNCING' || syncStatus === 'LOADING' 
+                        ? 'Syncing...' 
+                        : isCloudLoadComplete 
+                          ? 'Sync Now 🔄' 
+                          : 'Retry Cloud Connection 🔄'}
                     </button>
                   )}
                   {currentUser ? (
