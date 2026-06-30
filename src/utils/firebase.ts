@@ -42,23 +42,34 @@ const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const googleProvider = new GoogleAuthProvider();
 
+// Detect if the app is running in the AI Studio preview iframe or sandbox environment
+const isInIframe = typeof window !== 'undefined' && window.self !== window.top;
+const isAIStudioPreview = typeof window !== 'undefined' && (
+  window.location.hostname.includes('ais-dev') || 
+  window.location.hostname.includes('ais-pre') ||
+  window.location.hostname.includes('run.app')
+);
+
 // Initialize Firestore with custom Database ID or fallback
 const customDbId = (import.meta.env as any).VITE_FIREBASE_DATABASE_ID;
-const projectId = (import.meta.env as any).VITE_FIREBASE_PROJECT_ID;
 
-// If a custom project ID is provided (e.g. on Vercel) but no database ID is specified,
-// we should default to the "(default)" database since they are using their own Firebase project.
-// Otherwise, if we are in the default AI Studio sandbox project, we use the specific custom database.
+// If we are running in the default AI Studio sandbox project, we MUST use the specific multi-tenant database ID.
+// Otherwise, if the user is using their own custom project (Vercel or custom credentials), we default to "(default)".
+const isSandboxProject = !firebaseConfig.projectId || firebaseConfig.projectId === "gen-lang-client-0786967448";
+
 let databaseId: string | undefined = undefined;
-if (customDbId) {
-  databaseId = customDbId === "(default)" ? undefined : customDbId;
-} else if (!projectId || projectId === "gen-lang-client-0786967448") {
+if (isSandboxProject) {
   databaseId = "ai-studio-habitcandlestick-e45421b2-ee56-4ecb-8a52-abe0225caf43";
+} else if (customDbId) {
+  databaseId = customDbId === "(default)" ? undefined : customDbId;
 }
 
-export const db = initializeFirestore(app, {
-  experimentalForceLongPolling: true,
-}, databaseId);
+const useLongPolling = isInIframe || isAIStudioPreview;
+const firestoreSettings = useLongPolling ? { experimentalForceLongPolling: true } : {};
+
+export const db = databaseId 
+  ? initializeFirestore(app, firestoreSettings, databaseId)
+  : initializeFirestore(app, firestoreSettings);
 
 export enum OperationType {
   CREATE = 'create',
