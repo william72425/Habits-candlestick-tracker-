@@ -65,7 +65,10 @@ if (isSandboxProject) {
 }
 
 const useLongPolling = isInIframe || isAIStudioPreview;
-const firestoreSettings = useLongPolling ? { experimentalForceLongPolling: true } : {};
+const firestoreSettings = useLongPolling ? { 
+  experimentalForceLongPolling: true,
+  useFetchStreams: false
+} : {};
 
 export const db = databaseId 
   ? initializeFirestore(app, firestoreSettings, databaseId)
