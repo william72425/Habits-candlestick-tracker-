@@ -100,6 +100,8 @@ export default function App() {
   const [authLoading, setAuthLoading] = useState<boolean>(true);
   const [isGuestMode, setIsGuestMode] = useState<boolean>(false);
   const [isCloudLoadComplete, setIsCloudLoadComplete] = useState<boolean>(false);
+  const [syncStatus, setSyncStatus] = useState<'IDLE' | 'LOADING' | 'SYNCING' | 'SYNCED' | 'ERROR'>('IDLE');
+  const [syncError, setSyncError] = useState<string | null>(null);
 
   // Future Betting States
   const [betWager, setBetWager] = useState<number>(100);
@@ -141,6 +143,8 @@ export default function App() {
       if (user) {
         setCurrentUser(user);
         setIsGuestMode(false);
+        setSyncStatus('LOADING');
+        setSyncError(null);
         try {
           // Fetch cloud user document with a 3.5s timeout fallback to avoid long loading screen hangs
           const result = await Promise.race([
@@ -176,6 +180,7 @@ export default function App() {
               setConfig(DEFAULT_TERMINAL_CONFIG);
             }
             setIsCloudLoadComplete(true);
+            setSyncStatus('SYNCED');
           } else if (!result.isTimeout) {
             // New Firebase user - inherit current local storage progress or fallback to defaults
             const cachedHabits = localStorage.getItem(LOCAL_STORAGE_KEY);
@@ -198,8 +203,10 @@ export default function App() {
             setHabits(initialHabits);
             setConfig(initialConfig);
             
+            setSyncStatus('SYNCING');
             await saveUserData(user.uid, initialHabits, initialConfig);
             setIsCloudLoadComplete(true);
+            setSyncStatus('SYNCED');
           } else {
             // Network timeout fallback
             console.warn("Firestore fetch timed out. Operating in offline/cached mode.");
@@ -215,17 +222,23 @@ export default function App() {
               setConfig(DEFAULT_TERMINAL_CONFIG);
             }
             setIsCloudLoadComplete(false); // Do not allow overwriting cloud database with offline cached data
+            setSyncStatus('ERROR');
+            setSyncError("Cloud fetch timed out. Operating offline.");
           }
         } catch (err) {
           console.error("Error fetching or initializing user document from Firestore:", err);
           setHabits(getMockHabits());
           setConfig(DEFAULT_TERMINAL_CONFIG);
           setIsCloudLoadComplete(false);
+          setSyncStatus('ERROR');
+          setSyncError(err instanceof Error ? err.message : String(err));
         }
         setAppInitialized(true);
       } else {
         setCurrentUser(null);
         setIsCloudLoadComplete(false);
+        setSyncStatus('IDLE');
+        setSyncError(null);
         // Check if guest mode was manually flagged
         const guestFlag = localStorage.getItem('guest_mode_active') === 'true';
         setIsGuestMode(guestFlag);
@@ -274,12 +287,42 @@ export default function App() {
       localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(habits));
       localStorage.setItem(LOCAL_STORAGE_KEY_CONFIG, JSON.stringify(config));
       if (currentUser && isCloudLoadComplete) {
-        saveUserData(currentUser.uid, habits, config);
+        setSyncStatus('SYNCING');
+        saveUserData(currentUser.uid, habits, config)
+          .then(() => {
+            setSyncStatus('SYNCED');
+            setSyncError(null);
+          })
+          .catch((err) => {
+            setSyncStatus('ERROR');
+            setSyncError(err instanceof Error ? err.message : String(err));
+          });
       }
     } catch (e) {
       console.error('Error syncing user data to storage/cloud:', e);
+      setSyncStatus('ERROR');
+      setSyncError(e instanceof Error ? e.message : String(e));
     }
   }, [habits, config, appInitialized, currentUser, isCloudLoadComplete]);
+
+  const forceManualSync = async () => {
+    if (!currentUser) {
+      alert("You must be logged in to sync with the cloud.");
+      return;
+    }
+    setSyncStatus('SYNCING');
+    try {
+      await saveUserData(currentUser.uid, habits, config);
+      setSyncStatus('SYNCED');
+      setSyncError(null);
+      alert('Cloud synchronization complete! All your habits, progress, and terminal points have been securely backed up.');
+    } catch (err) {
+      setSyncStatus('ERROR');
+      const msg = err instanceof Error ? err.message : String(err);
+      setSyncError(msg);
+      alert(`Cloud backup failed:\n${msg}`);
+    }
+  };
 
   const [unmarkedDayToReconcile, setUnmarkedDayToReconcile] = useState<string | null>(null);
   const [afkCheckedHabits, setAfkCheckedHabits] = useState<Record<string, boolean>>({});
@@ -1212,11 +1255,31 @@ export default function App() {
         <div className="flex items-center gap-3">
           {/* User info capsule */}
           {currentUser ? (
-            <div className="flex items-center gap-2 px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-emerald-400 font-mono text-xs font-semibold">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+            <button
+              onClick={forceManualSync}
+              title={syncError ? `Sync Error: ${syncError}. Click to retry cloud sync.` : "Cloud Database Sync active. Click to trigger manual sync backup."}
+              className={`flex items-center gap-2 px-3 py-1 border rounded-xl font-mono text-xs font-semibold cursor-pointer transition-all ${
+                syncStatus === 'SYNCED' 
+                  ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/20' 
+                  : syncStatus === 'SYNCING' || syncStatus === 'LOADING'
+                    ? 'bg-cyan-500/10 border-cyan-500/20 text-cyan-400 animate-pulse'
+                    : 'bg-rose-500/10 border-rose-500/20 text-rose-400 hover:bg-rose-500/20'
+              }`}
+            >
+              <span className={`w-2 h-2 rounded-full ${
+                syncStatus === 'SYNCED' 
+                  ? 'bg-emerald-400 animate-pulse' 
+                  : syncStatus === 'SYNCING' || syncStatus === 'LOADING'
+                    ? 'bg-cyan-400 animate-ping'
+                    : 'bg-rose-400'
+              }`}></span>
               <span className="hidden sm:inline max-w-[120px] truncate">{currentUser.email}</span>
-              <span className="sm:hidden">Sync ✅</span>
-            </div>
+              <span>
+                {syncStatus === 'SYNCED' && 'Sync ✅'}
+                {(syncStatus === 'SYNCING' || syncStatus === 'LOADING') && 'Syncing...'}
+                {syncStatus === 'ERROR' && 'Sync ❌'}
+              </span>
+            </button>
           ) : isGuestMode ? (
             <div className="flex items-center gap-2 px-3 py-1 bg-amber-500/10 border border-amber-500/20 rounded-xl text-amber-400 font-mono text-xs font-semibold">
               <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
@@ -1875,40 +1938,87 @@ export default function App() {
             </div>
 
             {/* Account Management Card */}
-            <div className="bg-slate-900/30 border border-slate-800/80 p-5 rounded-xl flex flex-col md:flex-row items-center justify-between gap-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
-                  <Database className="w-5 h-5" />
+            <div className="bg-slate-900/30 border border-slate-800/80 p-5 rounded-xl flex flex-col gap-4">
+              <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center border ${
+                    !currentUser 
+                      ? 'bg-amber-500/10 border-amber-500/20 text-amber-400' 
+                      : syncStatus === 'SYNCED'
+                        ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
+                        : syncStatus === 'SYNCING' || syncStatus === 'LOADING'
+                          ? 'bg-cyan-500/10 border-cyan-500/20 text-cyan-400 animate-pulse'
+                          : 'bg-rose-500/10 border-rose-500/20 text-rose-400'
+                  }`}>
+                    <Database className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-white text-sm font-extrabold uppercase tracking-wider flex items-center gap-2">
+                      <span>Cloud Data Persistence Sync</span>
+                      {currentUser && (
+                        <span className={`text-[9px] font-mono px-2 py-0.5 rounded font-bold uppercase ${
+                          syncStatus === 'SYNCED' 
+                            ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' 
+                            : syncStatus === 'SYNCING' || syncStatus === 'LOADING'
+                              ? 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/20'
+                              : 'bg-rose-500/10 text-rose-400 border border-rose-500/20 animate-pulse'
+                        }`}>
+                          {syncStatus === 'SYNCED' && '🟢 Connected & Synced'}
+                          {(syncStatus === 'SYNCING' || syncStatus === 'LOADING') && '🔵 Syncing...'}
+                          {syncStatus === 'ERROR' && '🔴 Sync Error'}
+                        </span>
+                      )}
+                    </h3>
+                    <p className="text-slate-400 text-xs mt-0.5">
+                      {currentUser 
+                        ? `စနစ်ထဲသို့ ${currentUser.email} ဖြင့် လုံခြုံစွာဝင်ရောက်ထားပြီးဖြစ်ပါသည်။ သင့်ဒေတာများကို Cloud Database ပေါ်တွင်အမြဲ auto-sync လုပ်ပေးနေပါသည်။` 
+                        : 'သင်သည် Guest Mode ဖြင့်အသုံးပြုနေပါသည်။ စက်ပစ္စည်းပြောင်းလဲသည့်အခါ ဒေတာများမဆုံးရှုံးစေရန် Google သို့မဟုတ် Email ဖြင့် အကောင့်ဖွင့်ပါရန် အကြံပြုအပ်ပါသည်။'}
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <h3 className="text-white text-sm font-extrabold uppercase tracking-wider">Cloud Data Persistence Sync</h3>
-                  <p className="text-slate-400 text-xs mt-0.5">
-                    {currentUser 
-                      ? `စနစ်ထဲသို့ ${currentUser.email} ဖြင့် လုံခြုံစွာဝင်ရောက်ထားပြီးဖြစ်၍ သင့်ဒေတာများကို Cloud ပေါ်တွင်အမြဲ Sync လုပ်ပေးနေပါသည်။` 
-                      : 'သင်သည် Guest Mode ဖြင့်အသုံးပြုနေပါသည်။ စက်ပစ္စည်းပြောင်းလဲသည့်အခါ ဒေတာများမဆုံးရှုံးစေရန် Google သို့မဟုတ် Email ဖြင့် အကောင့်ဖွင့်ပါရန် အကြံပြုအပ်ပါသည်။'}
-                  </p>
+                <div className="flex items-center gap-2 self-end md:self-center">
+                  {currentUser && (
+                    <button
+                      onClick={forceManualSync}
+                      disabled={syncStatus === 'SYNCING' || syncStatus === 'LOADING'}
+                      className="px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black rounded-xl text-xs uppercase transition-all cursor-pointer shadow-[0_0_15px_rgba(16,185,129,0.3)] disabled:opacity-50"
+                    >
+                      {syncStatus === 'SYNCING' || syncStatus === 'LOADING' ? 'Syncing...' : 'Sync Now 🔄'}
+                    </button>
+                  )}
+                  {currentUser ? (
+                    <button
+                      onClick={handleLogout}
+                      className="px-4 py-2 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 text-rose-400 hover:text-rose-300 rounded-xl text-xs font-bold uppercase transition-all cursor-pointer"
+                    >
+                      Sign Out Account
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => {
+                        localStorage.removeItem('guest_mode_active');
+                        setIsGuestMode(false);
+                      }}
+                      className="px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 rounded-xl text-xs font-black uppercase transition-all cursor-pointer shadow-[0_0_15px_rgba(16,185,129,0.3)]"
+                    >
+                      Go To Authentication
+                    </button>
+                  )}
                 </div>
               </div>
-              <div className="flex items-center gap-2">
-                {currentUser ? (
-                  <button
-                    onClick={handleLogout}
-                    className="px-4 py-2 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 text-rose-400 hover:text-rose-300 rounded-xl text-xs font-bold uppercase transition-all cursor-pointer"
-                  >
-                    Sign Out Account
-                  </button>
-                ) : (
-                  <button
-                    onClick={() => {
-                      localStorage.removeItem('guest_mode_active');
-                      setIsGuestMode(false);
-                    }}
-                    className="px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 rounded-xl text-xs font-black uppercase transition-all cursor-pointer shadow-[0_0_15px_rgba(16,185,129,0.3)]"
-                  >
-                    Go To Authentication
-                  </button>
-                )}
-              </div>
+              
+              {currentUser && syncError && (
+                <div className="mt-2 p-3 bg-rose-500/5 border border-rose-500/20 rounded-xl flex items-start gap-2 text-rose-400 text-xs font-mono">
+                  <span className="text-sm">⚠️</span>
+                  <div className="flex flex-col gap-1">
+                    <span className="font-extrabold uppercase">Cloud Synchronization Error Detected:</span>
+                    <span className="text-slate-300 select-all leading-normal">{syncError}</span>
+                    <span className="text-[10px] text-slate-400 leading-normal mt-1">
+                      အဆင်မပြေမှုအတွက် တောင်းပန်ပါသည်။ Permission error ဖြစ်ပါက system rules ကို verify လုပ်ရန် သို့မဟုတ် security permissions ကို debug လုပ်ရန် လိုအပ်နိုင်ပါသည်။
+                    </span>
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">

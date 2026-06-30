@@ -19,14 +19,20 @@ import {
 } from 'firebase/firestore';
 import { Habit, UserTerminalConfig } from '../types';
 
+declare global {
+  interface ImportMeta {
+    readonly env: any;
+  }
+}
+
 // Read configuration from environment variables or fallback to system generated parameters
 const firebaseConfig = {
-  apiKey: (import.meta as any).env.VITE_FIREBASE_API_KEY || "AIzaSyDKzf3bri2K6njgK1o64V1Y3mUfafkCV9s",
-  authDomain: (import.meta as any).env.VITE_FIREBASE_AUTH_DOMAIN || "gen-lang-client-0786967448.firebaseapp.com",
-  projectId: (import.meta as any).env.VITE_FIREBASE_PROJECT_ID || "gen-lang-client-0786967448",
-  storageBucket: (import.meta as any).env.VITE_FIREBASE_STORAGE_BUCKET || "gen-lang-client-0786967448.firebasestorage.app",
-  messagingSenderId: (import.meta as any).env.VITE_FIREBASE_MESSAGING_SENDER_ID || "584507499628",
-  appId: (import.meta as any).env.VITE_FIREBASE_APP_ID || "1:584507499628:web:59d854cb6ab7181e7b2449"
+  apiKey: (import.meta.env as any).VITE_FIREBASE_API_KEY || "AIzaSyDKzf3bri2K6njgK1o64V1Y3mUfafkCV9s",
+  authDomain: (import.meta.env as any).VITE_FIREBASE_AUTH_DOMAIN || "gen-lang-client-0786967448.firebaseapp.com",
+  projectId: (import.meta.env as any).VITE_FIREBASE_PROJECT_ID || "gen-lang-client-0786967448",
+  storageBucket: (import.meta.env as any).VITE_FIREBASE_STORAGE_BUCKET || "gen-lang-client-0786967448.firebasestorage.app",
+  messagingSenderId: (import.meta.env as any).VITE_FIREBASE_MESSAGING_SENDER_ID || "584507499628",
+  appId: (import.meta.env as any).VITE_FIREBASE_APP_ID || "1:584507499628:web:59d854cb6ab7181e7b2449"
 };
 
 // Initialize Firebase App
@@ -37,8 +43,8 @@ export const auth = getAuth(app);
 export const googleProvider = new GoogleAuthProvider();
 
 // Initialize Firestore with custom Database ID or fallback
-const customDbId = (import.meta as any).env.VITE_FIREBASE_DATABASE_ID;
-const projectId = (import.meta as any).env.VITE_FIREBASE_PROJECT_ID;
+const customDbId = (import.meta.env as any).VITE_FIREBASE_DATABASE_ID;
+const projectId = (import.meta.env as any).VITE_FIREBASE_PROJECT_ID;
 
 // If a custom project ID is provided (e.g. on Vercel) but no database ID is specified,
 // we should default to the "(default)" database since they are using their own Firebase project.
