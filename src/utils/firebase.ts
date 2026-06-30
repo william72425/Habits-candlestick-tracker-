@@ -12,7 +12,7 @@ import {
   User
 } from 'firebase/auth';
 import { 
-  getFirestore, 
+  initializeFirestore, 
   doc, 
   getDoc, 
   setDoc 
@@ -56,7 +56,9 @@ if (customDbId) {
   databaseId = "ai-studio-habitcandlestick-e45421b2-ee56-4ecb-8a52-abe0225caf43";
 }
 
-export const db = getFirestore(app, databaseId);
+export const db = initializeFirestore(app, {
+  experimentalForceLongPolling: true,
+}, databaseId);
 
 export enum OperationType {
   CREATE = 'create',
