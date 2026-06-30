@@ -53,26 +53,24 @@ const isAIStudioPreview = typeof window !== 'undefined' && (
 // Initialize Firestore with custom Database ID or fallback
 const customDbId = (import.meta.env as any).VITE_FIREBASE_DATABASE_ID;
 
-// If we are running in the default AI Studio sandbox project, we MUST use the specific multi-tenant database ID.
-// Otherwise, if the user is using their own custom project (Vercel or custom credentials), we default to "(default)".
+// If the user has configured their own custom Firebase project, they will have their own project ID.
+// In that case, we must always default to the "(default)" database (databaseId = undefined) across both
+// the preview environment and their Vercel deployment.
+// We only use the custom sandbox database ID if we are actively running in the AI Studio sandbox project.
 const isSandboxProject = !firebaseConfig.projectId || firebaseConfig.projectId === "gen-lang-client-0786967448";
 
 let databaseId: string | undefined = undefined;
-if (isSandboxProject) {
-  databaseId = "ai-studio-habitcandlestick-e45421b2-ee56-4ecb-8a52-abe0225caf43";
-} else if (customDbId) {
+if (customDbId) {
   databaseId = customDbId === "(default)" ? undefined : customDbId;
+} else if (isAIStudioPreview && isSandboxProject) {
+  databaseId = "ai-studio-habitcandlestick-e45421b2-ee56-4ecb-8a52-abe0225caf43";
 }
 
 const useLongPolling = isInIframe || isAIStudioPreview;
-const firestoreSettings = useLongPolling ? { 
-  experimentalForceLongPolling: true,
-  useFetchStreams: false
-} : {};
 
-export const db = databaseId 
-  ? initializeFirestore(app, firestoreSettings, databaseId)
-  : initializeFirestore(app, firestoreSettings);
+export const db = initializeFirestore(app, useLongPolling ? {
+  experimentalForceLongPolling: true,
+} : {}, databaseId);
 
 export enum OperationType {
   CREATE = 'create',
